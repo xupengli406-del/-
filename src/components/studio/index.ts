@@ -1,0 +1,5 @@
+export { default as StudioHeader } from './StudioHeader'
+export { default as FileExplorer } from './FileExplorer'
+export { default as WorkCanvas } from './WorkCanvas'
+export { default as AIInspector } from './AIInspector'
+export { default as AICopilot } from './AICopilot'
