@@ -8,11 +8,18 @@
   box-sizing: border-box;
 }
 
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background-color: #0a0a0a;
-  color: #ffffff;
-  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background-color: #ffffff;
+  color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar {
@@ -20,14 +27,374 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #d1d1d6;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #aeaeb2;
+}
+
+/* React Flow 自定义样式 */
+.react-flow__node {
+  cursor: default;
+}
+
+.react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__edge-path {
+  cursor: pointer;
+}
+
+.react-flow__minimap {
+  border-radius: 8px !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* React Flow 画布编辑器模式 - 保持深色 */
+.canvas-editor-mode {
+  background-color: #0a0a0a;
+  color: #ffffff;
+}
+
+.canvas-editor-mode ::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.canvas-editor-mode ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+.canvas-editor-mode ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* ===== Obsidian 风格工作区组件 ===== */
+
+/* 标题栏 — 已移除 */
+.titlebar {
+  display: none;
+}
+
+/* Ribbon — 最左侧始终可见的图标条（类似 Obsidian） */
+.ribbon {
+  width: 44px;
+  background: #f0f0f3;
+  border-right: 1px solid #e8e8ed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  user-select: none;
+  padding-top: 4px;
+}
+
+.ribbon-top-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid #e0e0e5;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.ribbon-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #86868b;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.ribbon-btn:hover {
+  color: #1d1d1f;
+  background: #e8e8ed;
+}
+
+.ribbon-btn-active {
+  color: #2B5AE8;
+  background: #e0e7fd;
+}
+
+.ribbon-btn-active:hover {
+  color: #1A3FB5;
+  background: #d4dffb;
+}
+
+/* 选中指示条 — Obsidian 风格左侧竖线 */
+.ribbon-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 2px 2px 0;
+  background: #2B5AE8;
+}
+
+/* Side Panel — 侧面板容器 */
+.side-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fbfbfd;
+}
+
+.side-panel-header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid #e8e8ed;
+  flex-shrink: 0;
+}
+
+/* ===== FileTree 文件树组件 ===== */
+
+/* 文件树子工具栏 */
+.filetree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e8e8ed;
+  flex-shrink: 0;
+}
+
+.filetree-toolbar-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #86868b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.filetree-toolbar-btn:hover {
+  color: #1d1d1f;
+  background: #e8e8ed;
+}
+
+/* 文件夹行 */
+.filetree-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.filetree-folder-row:hover {
+  background: #ededf0;
+}
+
+.filetree-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #86868b;
+}
+
+.filetree-folder-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1d1d1f;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 文件行 */
+.filetree-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.filetree-file-row:hover {
+  background: #ededf0;
+}
+
+/* 选中状态 */
+.filetree-file-selected {
+  background: #d4dffb;
+}
+
+.filetree-file-selected:hover {
+  background: #c5d3f8;
+}
+
+.filetree-file-label {
+  font-size: 12px;
+  color: #3c3c43;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 格式标签（如 CANVAS, PNG） */
+.filetree-format-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #ededf0;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* 缩进竖线 */
+.filetree-indent-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d5d5da;
+}
+
+/* ===== 搜索面板 ===== */
+
+.search-input-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f2f2f7;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.search-input-container:focus-within {
+  border-color: #2B5AE8;
+  background: #fff;
+}
+
+.search-options-dropdown {
+  border-bottom: 1px solid #e8e8ed;
+  padding-bottom: 4px;
+}
+
+.search-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.search-option-item:hover {
+  background: #ededf0;
+}
+
+.search-option-key {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d1d1f;
+  min-width: 70px;
+}
+
+.search-option-desc {
+  font-size: 11px;
+  color: #86868b;
+}
+
+/* 面板展开/折叠过渡 */
+.panel-transition {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease,
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 悬浮胶囊导航 tooltip */
+.nav-tooltip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #1d1d1f;
+  color: white;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.nav-btn:hover .nav-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* 视图切换淡入动画 */
+.view-enter {
+  animation: viewFadeIn 0.2s ease-out;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 隐藏滚动条 */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
