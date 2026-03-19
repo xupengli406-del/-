@@ -1,7 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Component, type ReactNode, type ErrorInfo } from 'react'
-import Dashboard from './pages/Dashboard'
-import StudioIDE from './pages/StudioIDE'
+import { Component, useEffect, useState, type ReactNode, type ErrorInfo } from 'react'
+import WorkspaceShell from './components/workspace/WorkspaceShell'
+import { useCanvasStore } from './store/canvasStore'
+import { useWorkspaceStore } from './store/workspaceStore'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -10,10 +10,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 40, color: '#f87171', background: '#0a0a0a', minHeight: '100vh', fontFamily: 'monospace' }}>
-          <h1 style={{ fontSize: 24, marginBottom: 16 }}>渲染错误</h1>
-          <pre style={{ whiteSpace: 'pre-wrap', color: '#fbbf24' }}>{this.state.error.message}</pre>
-          <pre style={{ whiteSpace: 'pre-wrap', color: '#9ca3af', marginTop: 12, fontSize: 12 }}>{this.state.error.stack}</pre>
+        <div style={{ padding: 40, color: '#e53e3e', background: '#fff', minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+          <h1 style={{ fontSize: 24, marginBottom: 16, fontWeight: 600 }}>渲染错误</h1>
+          <pre style={{ whiteSpace: 'pre-wrap', color: '#c53030' }}>{this.state.error.message}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', color: '#a0aec0', marginTop: 12, fontSize: 12 }}>{this.state.error.stack}</pre>
         </div>
       )
     }
@@ -21,19 +21,48 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+function MainLayout() {
+  const { initializeFromBackend, loadCanvasFile } = useCanvasStore()
+  const { openDocument } = useWorkspaceStore()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeFromBackend()
+
+      // URL 参数兼容: ?mode=canvas&project=xxx
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('mode') === 'canvas') {
+        const projectId = params.get('project')
+        if (projectId) {
+          loadCanvasFile(projectId)
+          openDocument({ type: 'canvas', id: projectId })
+        }
+      }
+
+      setReady(true)
+    }
+    init()
+  }, [initializeFromBackend, loadCanvasFile, openDocument])
+
+  if (!ready) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-apple-text-tertiary">加载中...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return <WorkspaceShell />
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <Routes>
-        {/* 第一层级：工作空间仪表盘 */}
-        <Route path="/" element={<Dashboard />} />
-        
-        {/* 第二层级：工业化创作工作台 */}
-        <Route path="/studio/:projectId" element={<StudioIDE />} />
-        
-        {/* 兜底重定向 */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <MainLayout />
     </ErrorBoundary>
   )
 }
