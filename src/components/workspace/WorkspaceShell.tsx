@@ -1,24 +1,17 @@
 import { Panel, Group, Separator } from 'react-resizable-panels'
+import { Menu } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
-import WorkspaceTitleBar from './WorkspaceTitleBar'
-import Ribbon from './Ribbon'
 import SidePanel from './SidePanel'
 import PaneContainer from './PaneContainer'
 
 export default function WorkspaceShell() {
-  const { paneLayout, activeSidePanel } = useWorkspaceStore()
+  const { paneLayout, activeSidePanel, setActiveSidePanel } = useWorkspaceStore()
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden">
-      <WorkspaceTitleBar />
+    <div className="flex flex-col h-screen bg-ds-surface overflow-hidden">
       <div className="flex-1 flex overflow-hidden">
-        {/* Ribbon — 始终可见，与 Obsidian 一致 */}
-        <Ribbon />
-
-        {/* Side Panel + Main Area */}
         {activeSidePanel ? (
           <Group orientation="horizontal" id="workspace-main">
-            {/* 侧面板 */}
             <Panel
               id="sidebar"
               defaultSize="220px"
@@ -28,16 +21,22 @@ export default function WorkspaceShell() {
               <SidePanel />
             </Panel>
             <Separator>
-              <div className="w-[1px] h-full bg-apple-border-light hover:bg-brand/30 transition-colors" />
+              <div className="w-[1px] h-full bg-ds-surface-container-high/60 hover:bg-brand/20 transition-colors" />
             </Separator>
-            {/* 主区域 */}
             <Panel id="main" minSize="40%">
               <PaneContainer node={paneLayout} isRoot />
             </Panel>
           </Group>
         ) : (
-          /* 侧面板折叠时，Ribbon 后面直接是主区域 */
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden relative">
+            {/* 侧边栏折叠时：悬浮展开按钮 */}
+            <button
+              onClick={() => setActiveSidePanel('files')}
+              className="absolute top-2 left-2 z-30 w-8 h-8 flex items-center justify-center rounded-ds bg-ds-surface-container-lowest text-ds-on-surface-variant hover:bg-ds-surface-container-high hover:text-ds-on-surface transition-colors shadow-float"
+              title="展开侧边栏"
+            >
+              <Menu size={16} strokeWidth={1.5} />
+            </button>
             <PaneContainer node={paneLayout} isRoot />
           </div>
         )}

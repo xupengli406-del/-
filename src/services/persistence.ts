@@ -188,6 +188,9 @@ export interface GenerateHistoryPayload {
   prompt: string
   result?: string
   resultUrl?: string
+  referenceImageUrls?: string[]
+  referenceMode?: 'all' | 'first' | 'both'
+  referenceThumbLabels?: string[]
   status: 'generating' | 'completed' | 'failed'
   createdAt: number
 }

@@ -80,21 +80,21 @@ export default function FileTreeContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-[100] bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[180px]"
-      style={{ left: x, top: y }}
+      className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[180px]"
+      style={{ left: x, top: y, border: '1px solid rgba(179,177,183,0.2)' }}
     >
       {items.map((item, i) => {
         if (!item) {
-          return <div key={`sep-${i}`} className="h-px bg-apple-border-light my-1" />
+          return <div key={`sep-${i}`} className="h-px bg-ds-surface-container-high my-1" />
         }
         return (
           <button
             key={i}
             onClick={() => { item.onClick?.(); onClose() }}
-            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+            className={`w-full flex items-center gap-2 px-3.5 py-2 text-xs transition-colors ${
               item.danger
                 ? 'text-red-500 hover:bg-red-50'
-                : 'text-apple-text hover:bg-apple-bg-secondary'
+                : 'text-ds-on-surface hover:bg-ds-surface-container-low'
             }`}
           >
             <item.icon size={13} className="flex-shrink-0" />

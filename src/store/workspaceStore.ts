@@ -35,6 +35,8 @@ interface WorkspaceState {
   toggleSidePanel: (panel: SidePanelType) => void
   toggleFolder: (folderId: string) => void
   buildFileTree: () => FileTreeItem[]
+  /** 画布文件名变更后同步所有 pane 内标签标题 */
+  refreshTabLabels: () => void
 }
 
 const initialPaneId = generatePaneId()
@@ -63,6 +65,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     else next.add(folderId)
     return { fileTreeExpandedFolders: next }
   }),
+
+  refreshTabLabels: () => {
+    const canvasState = useCanvasStore.getState()
+    set((s) => ({
+      paneLayout: mapPaneLabels(s.paneLayout, canvasState),
+    }))
+  },
 
   setActivePaneId: (paneId: string) => set({ activePaneId: paneId }),
 
@@ -295,6 +304,22 @@ function findTabInTree(node: PaneNode, docId: DocumentId): { paneId: string, tab
     if (result) return result
   }
   return null
+}
+
+function mapPaneLabels(node: PaneNode, canvasState: ReturnType<typeof useCanvasStore.getState>): PaneNode {
+  if (node.kind === 'leaf') {
+    return {
+      ...node,
+      tabs: node.tabs.map((t) => ({
+        ...t,
+        label: getDocumentLabel(t.docId, canvasState),
+      })),
+    }
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => mapPaneLabels(c, canvasState)),
+  }
 }
 
 // 更新树中某个 leaf

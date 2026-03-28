@@ -22,7 +22,15 @@ import {
   Film,
 } from 'lucide-react'
 import { useCanvasStore } from '../../../store/canvasStore'
+import { useWorkspaceStore } from '../../../store/workspaceStore'
 import { runNode } from '../../../services/imageGeneration'
+import {
+  getImageReferenceMax,
+  getVideoReferenceMax,
+  buildReferenceThumbLabels,
+  type VideoReferenceMode,
+} from '../../../services/modelCapabilities'
+import { uploadImageFile, resolvePreviewToUploadedUrl } from '../../../lib/referenceImageUpload'
 import {
   modeConfig,
   IMAGE_RATIO_OPTIONS,
@@ -112,6 +120,10 @@ export default function AIPane({ fileId }: AIPaneProps) {
     else if (boundFile?.projectType === 'video') setActiveMode('video')
   }, [boundFile?.id, boundFile?.projectType])
 
+  useEffect(() => {
+    setTitleEditing(false)
+  }, [fileId])
+
   // 图片模式参数
   const imageModels = availableModels.filter((m) => m.ability === 'text2img')
   const [selectedImageModel, setSelectedImageModel] = useState('')
@@ -125,6 +137,18 @@ export default function AIPane({ fileId }: AIPaneProps) {
   const [videoLength, setVideoLength] = useState(5)
   const [videoRatio, setVideoRatio] = useState('16:9')
   const [videoRefMode, setVideoRefMode] = useState('all')
+
+  const maxRefAttachments = useMemo(() => {
+    if (activeMode === 'image') {
+      const m = imageModels.find((x) => x.name === (selectedImageModel || imageModels[0]?.name))
+      return getImageReferenceMax(m?.id ?? '', m?.name ?? '')
+    }
+    if (activeMode === 'video') {
+      const m = videoModels.find((x) => x.name === (selectedVideoModel || videoModels[0]?.name))
+      return getVideoReferenceMax(m?.id ?? '', m?.name ?? '', videoRefMode as VideoReferenceMode)
+    }
+    return 0
+  }, [activeMode, imageModels, videoModels, selectedImageModel, selectedVideoModel, videoRefMode])
 
   // 剧本模式参数
   const scriptModels = availableModels.filter((m) => m.ability === 'chat_completion')
@@ -146,6 +170,10 @@ export default function AIPane({ fileId }: AIPaneProps) {
   const [mentions, setMentions] = useState<Array<{ type: 'character' | 'scene'; id: string; name: string }>>([])
   const [showMentionPopup, setShowMentionPopup] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
+  const [titleEditing, setTitleEditing] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+
+  const renameCanvasFile = useCanvasStore((s) => s.renameCanvasFile)
 
   // 分镜格上下文
   const frameContext = useMemo(() => {
@@ -316,12 +344,45 @@ export default function AIPane({ fileId }: AIPaneProps) {
       else st.updateChatMessage(id, updates)
     }
 
+    const cappedRefAttachments =
+      activeMode === 'image' || activeMode === 'video'
+        ? attachments.slice(0, maxRefAttachments)
+        : []
+
+    let refUrls: string[] = []
+    let refThumbLabels: string[] = []
+    if (cappedRefAttachments.length > 0) {
+      try {
+        for (const att of cappedRefAttachments) {
+          if (att.type === 'file' && att.file?.type.startsWith('image/')) {
+            refUrls.push(await uploadImageFile(att.file))
+          } else if (att.type === 'reference' && att.previewUrl) {
+            refUrls.push(await resolvePreviewToUploadedUrl(att.previewUrl, att.name))
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '参考图处理失败'
+        window.alert(msg)
+        return
+      }
+      const vm = activeMode === 'video' ? (videoRefMode as VideoReferenceMode) : 'all'
+      refThumbLabels = buildReferenceThumbLabels(
+        activeMode === 'image' ? 'image' : 'video',
+        vm,
+        refUrls.length
+      )
+    }
+
     const userMessage: ChatMessage = {
       id: messageId,
       role: 'user',
       mode: activeMode as 'script' | 'image' | 'video' | 'audio',
       content: prompt.trim(),
       references: chatReferences.length > 0 ? [...chatReferences] : undefined,
+      referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
+      referenceMode:
+        activeMode === 'video' && refUrls.length > 0 ? (videoRefMode as 'all' | 'first' | 'both') : undefined,
+      referenceThumbLabels: refThumbLabels.length > 0 ? refThumbLabels : undefined,
       status: 'sending',
       createdAt: Date.now(),
     }
@@ -371,6 +432,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
           model,
           size: imageResolution,
           response_format: 'url',
+          ...(refUrls.length > 0 ? { reference_image_urls: refUrls } : {}),
         })
         const contentUrl = result.outputs.content_url || ''
 
@@ -413,6 +475,12 @@ export default function AIPane({ fileId }: AIPaneProps) {
           prompt: currentPrompt,
           model,
           length: videoLength,
+          ...(refUrls.length > 0
+            ? {
+                reference_image_urls: refUrls,
+                video_reference_mode: videoRefMode as 'all' | 'first' | 'both',
+              }
+            : {}),
         })
         const contentUrl = result.outputs.content_url || ''
         if (useDedicatedMediaSessionSend && fileId) {
@@ -452,7 +520,13 @@ export default function AIPane({ fileId }: AIPaneProps) {
         previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
         name: file.name,
       }))
-      setAttachments((prev) => [...prev, ...newFiles])
+      setAttachments((prev) => {
+        const merged = [...prev, ...newFiles]
+        if ((activeMode === 'image' || activeMode === 'video') && maxRefAttachments > 0) {
+          return merged.slice(0, maxRefAttachments)
+        }
+        return merged
+      })
     }
   }
 
@@ -484,7 +558,13 @@ export default function AIPane({ fileId }: AIPaneProps) {
         previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
         name: file.name,
       }))
-      setAttachments((prev) => [...prev, ...newFiles])
+      setAttachments((prev) => {
+        const merged = [...prev, ...newFiles]
+        if ((activeMode === 'image' || activeMode === 'video') && maxRefAttachments > 0) {
+          return merged.slice(0, maxRefAttachments)
+        }
+        return merged
+      })
       return
     }
 
@@ -499,13 +579,19 @@ export default function AIPane({ fileId }: AIPaneProps) {
             name: refData.name || '参考内容',
             refId: refData.id,
           }
-          setAttachments((prev) => [...prev, newRef])
+          setAttachments((prev) => {
+            const merged = [...prev, newRef]
+            if ((activeMode === 'image' || activeMode === 'video') && maxRefAttachments > 0) {
+              return merged.slice(0, maxRefAttachments)
+            }
+            return merged
+          })
         }
       }
     } catch {
       // 忽略解析错误
     }
-  }, [])
+  }, [activeMode, maxRefAttachments])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1016,12 +1102,44 @@ export default function AIPane({ fileId }: AIPaneProps) {
   return (
     <div className="flex flex-col h-full w-full bg-white">
       {/* 头部 */}
-      <div className="flex items-center px-4 py-3 flex-shrink-0 border-b border-apple-border-light">
-        <span className="text-sm font-semibold text-apple-text truncate">
-          {isDedicatedFileTab && boundFile
-            ? `${boundFile.projectType === 'image' ? '图片' : '视频'} · ${boundFile.name}`
-            : '创作助手'}
-        </span>
+      <div className="flex items-center px-4 py-3 flex-shrink-0 border-b border-apple-border-light min-h-[44px]">
+        {isDedicatedFileTab && boundFile && fileId && titleEditing ? (
+          <input
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => {
+              const n = titleDraft.trim()
+              if (n) {
+                renameCanvasFile(fileId, n)
+                useWorkspaceStore.getState().refreshTabLabels()
+              }
+              setTitleEditing(false)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Escape') setTitleEditing(false)
+            }}
+            className="text-sm font-semibold text-apple-text w-full max-w-md px-2 py-1 rounded border border-brand/30 focus:outline-none focus:ring-2 focus:ring-brand/20"
+            autoFocus
+          />
+        ) : (
+          <span
+            className={`text-sm font-semibold text-apple-text truncate ${
+              isDedicatedFileTab && boundFile && fileId ? 'cursor-text select-none' : ''
+            }`}
+            title={isDedicatedFileTab && fileId ? '双击重命名' : undefined}
+            onDoubleClick={() => {
+              if (isDedicatedFileTab && boundFile && fileId) {
+                setTitleDraft(boundFile.name)
+                setTitleEditing(true)
+              }
+            }}
+          >
+            {isDedicatedFileTab && boundFile
+              ? `${boundFile.projectType === 'image' ? '图片' : '视频'} · ${boundFile.name}`
+              : '创作助手'}
+          </span>
+        )}
       </div>
 
       {isDedicatedFileTab && fileId && (
@@ -1110,6 +1228,21 @@ export default function AIPane({ fileId }: AIPaneProps) {
                       {new Date(item.createdAt).toLocaleTimeString()}
                     </span>
                   </div>
+
+                  {item.referenceImageUrls && item.referenceImageUrls.length > 0 && (
+                    <div className="flex gap-2 mb-2 flex-wrap">
+                      {item.referenceImageUrls.map((url, ri) => (
+                        <div key={`${item.id}-refimg-${ri}`} className="flex flex-col items-center gap-0.5">
+                          <span className="text-[9px] text-apple-text-tertiary">
+                            {item.referenceThumbLabels?.[ri] ?? `参考${ri + 1}`}
+                          </span>
+                          <div className="w-14 h-14 rounded-lg overflow-hidden border border-apple-border-light bg-white">
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {item.references && item.references.length > 0 && (
                     <div className="flex gap-1.5 mb-2 flex-wrap">

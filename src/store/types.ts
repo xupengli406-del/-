@@ -33,6 +33,12 @@ export interface ChatMessage {
   resultText?: string
   resultNodeIds?: string[]
   references?: ChatReference[]
+  /** 本地上传/解析后的参考图 URL（传给模型） */
+  referenceImageUrls?: string[]
+  /** 视频参考模式（与 VIDEO_REFERENCE_OPTIONS 一致） */
+  referenceMode?: 'all' | 'first' | 'both'
+  /** 与 referenceImageUrls 一一对应的展示标签 */
+  referenceThumbLabels?: string[]
   status: 'sending' | 'generating' | 'completed' | 'failed'
   errorMessage?: string
   createdAt: number
