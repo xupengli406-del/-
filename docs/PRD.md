@@ -70,39 +70,76 @@
 
 ```
 src/
-├── App.tsx                         # 入口：ErrorBoundary + MainLayout → WorkspaceShell
+├── App.tsx                              # 入口：ErrorBoundary + MainLayout → WorkspaceShell
+├── index.css                            # 全局样式（Tailwind扩展 + 自定义组件类）
 ├── store/
-│   ├── canvasStore.ts              # 实体数据 Store（画布文件、角色、场景、素材、AI会话）
-│   ├── workspaceStore.ts           # 布局/导航 Store（Pane树、Tab管理、侧边栏）
-│   ├── types.ts                    # 核心数据类型（CanvasFile, ChatMessage, AssetItem...）
-│   ├── workspaceTypes.ts           # 工作区类型（PaneNode, DocumentId, WorkspaceTab...）
-│   └── documentHelpers.ts          # 文档辅助函数
+│   ├── index.ts                         # Store 统一导出
+│   ├── canvasStore.ts                   # 实体数据 Store（26个状态字段）
+│   ├── workspaceStore.ts                # 布局/导航 Store（4个状态字段）
+│   ├── types.ts                         # 核心数据类型
+│   ├── workspaceTypes.ts                # 工作区类型
+│   └── documentHelpers.ts               # 文档标签辅助函数
 ├── components/
+│   ├── Canvas.tsx                        # React Flow 画布主组件
+│   ├── AssetPickerModal.tsx              # 素材选择弹窗
 │   ├── workspace/
-│   │   ├── WorkspaceShell.tsx      # 工作区外壳（侧边栏 + 主面板区域）
-│   │   ├── FileTree.tsx            # 文件树（平铺式 + 自定义文件夹 + 拖拽多选）
-│   │   ├── PaneContainer.tsx       # Pane容器（递归渲染 PaneNode 树）
-│   │   ├── TabBar.tsx              # 标签栏（支持分屏下拉菜单）
-│   │   ├── SidePanel.tsx           # 侧边栏面板
-│   │   ├── DocumentRenderer.tsx    # 文档路由（根据 DocumentType 渲染对应 Pane）
-│   │   ├── WelcomeTab.tsx          # 欢迎页
-│   │   └── panes/
-│   │       ├── AIPane.tsx          # AI 生成面板（4种模式，1568行）
-│   │       ├── CanvasPane.tsx      # 画布面板
-│   │       ├── ScriptPane.tsx      # 剧本编辑面板
-│   │       ├── CharacterPane.tsx   # 角色编辑面板
-│   │       ├── ScenePane.tsx       # 场景编辑面板
-│   │       ├── StoryboardFramePane.tsx  # 分镜面板
-│   │       └── MediaPane.tsx       # 素材详情面板
-│   └── generate/
-│       ├── ChatArea.tsx            # 对话区域组件
-│       └── constants.ts           # 生成模式常量定义
+│   │   ├── WorkspaceShell.tsx            # 工作区外壳（Ribbon + 侧边栏 + 主面板）
+│   │   ├── WorkspaceTitleBar.tsx         # 工作区标题栏
+│   │   ├── Ribbon.tsx                    # 左侧功能条（w-11，始终可见）
+│   │   ├── FileTree.tsx                  # 文件树（平铺式 + 自定义文件夹 + 拖拽多选）
+│   │   ├── FileTreeContextMenu.tsx       # 文件树右键菜单
+│   │   ├── MoveToFolderModal.tsx         # "移动到文件夹"弹窗
+│   │   ├── PaneContainer.tsx             # Pane容器（递归渲染 PaneNode 树）
+│   │   ├── TabBar.tsx                    # 标签栏（支持分屏下拉菜单）
+│   │   ├── SidePanel.tsx                 # 侧边栏面板容器
+│   │   ├── AISidePanel.tsx               # AI 侧面板
+│   │   ├── BookmarksPanel.tsx            # 书签面板
+│   │   ├── SearchPanel.tsx               # 搜索面板
+│   │   ├── DocumentRenderer.tsx          # 文档路由（8种 DocumentType → 对应 Pane）
+│   │   ├── WelcomeTab.tsx                # 欢迎页（5功能卡片 + 最近打开）
+│   │   └── panes/                        # 7 种 Pane 组件
+│   │       ├── AIPane.tsx                # AI 生成面板（图片/视频/音频3模式）
+│   │       ├── CanvasPane.tsx            # 画布面板（ReactFlowProvider + Canvas）
+│   │       ├── ScriptPane.tsx            # 剧本编辑面板（标题+内容+字数统计）
+│   │       ├── CharacterPane.tsx         # 角色编辑面板（头像+标签+描述）
+│   │       ├── ScenePane.tsx             # 场景编辑面板（参考图+描述）
+│   │       ├── StoryboardFramePane.tsx   # 分镜面板（左预览+右表单，版本切换）
+│   │       └── MediaPane.tsx             # 素材详情面板（多类型预览）
+│   ├── generate/
+│   │   ├── constants.ts                  # 生成模式/参数常量定义
+│   │   ├── ChatArea.tsx                  # 对话区域组件
+│   │   ├── HistoryPanel.tsx              # 历史记录面板
+│   │   └── ParamDropdown.tsx             # 参数下拉选择器
+│   ├── editors/                          # 画布内编辑器覆盖层
+│   │   ├── EditorOverlay.tsx             # 编辑器覆盖层容器
+│   │   ├── ScriptEditor.tsx
+│   │   ├── CharacterEditor.tsx
+│   │   ├── SceneEditor.tsx
+│   │   ├── StoryboardFrameEditor.tsx
+│   │   └── MediaViewer.tsx
+│   ├── nodes/                            # React Flow 自定义节点（9种）
+│   │   ├── ScriptNode.tsx
+│   │   ├── CharacterNode.tsx
+│   │   ├── SceneNode.tsx
+│   │   ├── StoryboardFrameNode.tsx
+│   │   ├── MediaNode.tsx
+│   │   ├── TextNode.tsx                  # 遗留节点
+│   │   ├── ImageNode.tsx                 # 遗留节点
+│   │   ├── VideoNode.tsx                 # 遗留节点
+│   │   └── AudioNode.tsx                 # 遗留节点
+│   ├── panels/                           # 画布附属面板
+│   │   ├── CanvasBottomBar.tsx
+│   │   ├── SelectionToolbar.tsx
+│   │   └── StoryboardImportModal.tsx
+│   └── assets/                           # 素材库视图
+│       ├── AssetToolbar.tsx
+│       └── AssetListView.tsx
 ├── services/
-│   ├── imageGeneration.ts          # AI 生成 API 封装
-│   ├── modelCapabilities.ts        # 模型能力配置
-│   ├── persistence.ts              # 持久化 API 封装
-│   └── referenceImageUpload.ts     # 参考图上传服务
-└── index.css                       # 全局样式（MD3 色彩变量）
+│   ├── imageGeneration.ts                # AI 生成 API 封装（runNode 统一入口）
+│   ├── modelCapabilities.ts              # 模型参考图上限规则
+│   ├── persistence.ts                    # 持久化 API（后端 + localStorage 双写）
+│   ├── storyboardParser.ts               # 分镜导入解析
+│   └── upload.ts                         # 通用文件上传
 ```
 
 ### 2.2 后端架构 (creative-forge)
@@ -145,8 +182,8 @@ creative-forge/creative-forge/
 
 | Store | 职责 | 关键状态 |
 |-------|------|---------|
-| **canvasStore** | 实体数据管理 | canvasFiles[], characters[], scenes[], assets[], chatMessages[], models[] |
-| **workspaceStore** | 布局/导航管理 | paneRoot(PaneNode树), activePaneId, sidebarItems[], customFolders[] |
+| **canvasStore** | 实体数据管理 | canvasFiles[], characters[], scenes[], assets[], chatMessages[], availableModels[], customFolders[], ak, editingProjectId, generateHistory[] 等共26个字段 |
+| **workspaceStore** | 布局/导航管理 | paneLayout(PaneNode树), activePaneId, activeSidePanel, fileTreeExpandedFolders 共4个字段 |
 
 两个 Store 协作流程：
 1. 用户在 FileTree 点击文件 → workspaceStore 打开 Tab
@@ -214,6 +251,7 @@ interface ChatMessage {
   referenceMode?: 'all' | 'first' | 'both'  // 视频参考模式
   referenceThumbLabels?: string[]   // 缩略图标签
   status: 'sending' | 'generating' | 'completed' | 'failed'
+  errorMessage?: string             // 失败时的错误信息
   createdAt: number
 }
 ```
@@ -335,9 +373,10 @@ interface DocumentId {
 }
 ```
 
-- 支持通过文件树双击打开 Tab
+- 支持通过文件树单击打开 Tab（替换当前 Tab 内容）
 - 支持在已有 Tab 间切换
 - 重复打开同一文档会激活已有 Tab 而非创建新 Tab
+- 双击文件名进入重命名模式
 
 #### 4.1.5 文档路由 (DocumentRenderer)
 
@@ -535,6 +574,7 @@ interface CanvasFileMediaVersion {
   url: string
   prompt: string
   createdAt: number
+  model?: string              // 使用的模型名
 }
 ```
 
@@ -588,16 +628,16 @@ interface CanvasFileMediaVersion {
 interface ScriptNodeData {
   title: string       // 标题
   content: string     // 完整内容
-  synopsis: string    // 摘要（前100字）
-  status: 'draft' | 'review' | 'final'  // 状态
+  synopsis: string    // 摘要（自动截取前100字）
+  status: GenerationStatus  // 'idle' | 'generating' | 'completed' | 'failed'
 }
 ```
 
 #### 4.5.3 编辑功能
 
-- 文本编辑（textarea，支持自动保存）
-- AI 辅助：通过 AIPane 的 script 模式生成/续写剧本
-- 状态管理：草稿 → 审核 → 定稿
+- 标题编辑（输入框，修改时同步更新 synopsis）
+- 内容编辑（大尺寸 textarea，min-h 400px）
+- 底部字数统计
 
 ---
 
@@ -623,7 +663,10 @@ interface CharacterContext {
 #### 4.6.3 操作
 
 - 新建角色：输入名称和描述
-- 编辑角色：修改描述、上传参考图
+- 头像上传：112x112 圆角头像区域，hover 显示上传覆盖层
+- 编辑角色：修改名称、描述、标签
+- 标签管理：蓝色胶囊展示，支持添加/删除
+- 双路径打开：支持通过画布节点 nodeId 或全局 characterId 打开
 - 画布关联：在画布中创建 characterNode，自动关联 CharacterContext
 - AI 引用：AI 生成时可 @角色名 注入角色描述作为上下文
 
@@ -650,7 +693,9 @@ interface SceneContext {
 #### 4.7.3 操作
 
 - 新建场景
-- 编辑场景描述和参考图
+- 参考图上传：16:9 宽高比区域，hover 显示上传覆盖层
+- 编辑场景描述（环境、氛围、时间、天气等）
+- 双路径打开：支持通过画布节点 nodeId 或全局 sceneId 打开
 - 画布中创建 sceneNode 关联场景
 
 ---
@@ -683,7 +728,21 @@ interface StoryboardVersion {
 }
 ```
 
-#### 4.8.3 工作流
+#### 4.8.3 面板布局
+
+分镜面板采用**左右双栏**布局：
+
+- **左侧** — 图片预览区 + 版本缩略图列表
+  - 4:3 宽高比大图预览（当前选中版本的画面）
+  - 底部版本缩略图横向滚动，点击切换版本
+- **右侧** (w-80) — 编辑表单
+  - 镜头类型 (shot)：近景/远景/特写
+  - 台词 (dialogue)：textarea
+  - 画面描述 (description)：textarea
+  - 关联角色：从全局 characters 列表多选（toggle，蓝色高亮）
+  - 关联场景：从全局 scenes 列表单选 + "无场景"选项（绿色高亮）
+
+#### 4.8.4 工作流
 
 1. 用户填写画面描述和对白
 2. 选择出场角色和所在场景
@@ -809,23 +868,17 @@ interface StoryboardVersion {
 }
 ```
 
-#### GET /modelmgmt/models
+#### GET /modelmgmt/list
 
-管理接口，获取所有模型配置（不受认证限制）。
+管理接口，获取所有模型配置（含禁用模型，仅从数据库读取，DB不可用返回503）。
 
-#### POST /modelmgmt/models
-
-添加模型配置。
-
-#### PUT /modelmgmt/models/{model_name}
-
-更新模型配置。
-
-#### DELETE /modelmgmt/models/{model_name}
-
-删除模型配置。
+**Query Parameters**：ability, enabled（可选过滤）
 
 ### 5.4 生成执行 API
+
+#### GET /nodes
+
+列出所有 Node（调试用）。
 
 #### POST /nodes/run
 
@@ -943,16 +996,16 @@ interface StoryboardVersion {
 #### SyncHttpExecutor（同步 HTTP）
 
 - 用于：Seedream 图片生成
-- 模式：发送请求 → 等待响应 → 返回结果
-- 超时：默认 HTTP 超时
+- 模式：发送 POST 请求 → 等待响应 → 从 `data[0]` 取 `url`/`b64_json`/`size`
+- 超时：120 秒
 
 #### AsyncPollingExecutor（异步轮询）
 
 - 用于：Seedance 视频生成
-- 模式：提交任务 → 轮询任务状态 → 获取结果
+- 模式：POST 创建任务 → 轮询 GET `/{task_id}` → 取 `content.video_url`
 - 轮询间隔：5 秒
 - 最大超时：300 秒（5 分钟）
-- 状态流转：submitted → running → completed / failed
+- 状态流转：submitted → running → succeeded / failed
 
 #### ChatCompletionExecutor（聊天补全）
 
@@ -963,8 +1016,11 @@ interface StoryboardVersion {
 ### 6.3 执行器工厂
 
 通过 `get_executor(model_name)` 自动匹配执行器：
-- 根据 `model_registry.json` 中模型的 `executor_type` 字段
+- 根据 `model_registry.json` 中模型的 `executor_class_name` 字段
+- 通过 `_EXECUTOR_CLASS_MAP` 字典映射到 Python 类
 - 自动注入模型对应的 `endpoint_url` 和 `api_key`
+
+> 注：还存在 2 个遗留的专用执行器（SeedreamExecutor、SeedanceExecutor），已标记为 deprecated，当前使用通用执行器替代。
 
 ---
 
@@ -973,44 +1029,109 @@ interface StoryboardVersion {
 ### 7.1 整体布局
 
 ```
-┌──────────────────────────────────────────┐
-│  顶栏（应用标题 + 全局操作）              │
-├────────┬─────────────────────────────────┤
-│        │                                 │
-│  侧边栏 │        主面板区域               │
-│  文件树  │  ┌─────────┬───────────┐       │
-│  (可折叠)│  │  Pane A  │  Pane B   │       │
-│        │  │ (TabBar) │ (TabBar)  │       │
-│        │  │ (内容)   │ (内容)    │       │
-│        │  └─────────┴───────────┘       │
-│        │                                 │
-└────────┴─────────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ flex-col h-screen                             │
+│ ┌─────────────────────────────────────────────┤
+│ │ flex (水平)                                 │
+│ │┌──┬────────┬─┬─────────────────────────────┐│
+│ ││  │ Side   │ │                             ││
+│ ││R │ Panel  │S│     主面板区域               ││
+│ ││i │ (File  │e│  ┌─────────┬───────────┐    ││
+│ ││b │  Tree) │p│  │  Pane A  │  Pane B   │    ││
+│ ││b │ 可拖拽  │ │  │ (TabBar) │ (TabBar)  │    ││
+│ ││o │ 宽度   │ │  │ (内容)   │ (内容)    │    ││
+│ ││n │ 160-   │ │  └─────────┴───────────┘    ││
+│ ││  │ 400px  │ │                             ││
+│ │└──┴────────┴─┴─────────────────────────────┘│
+│ └─────────────────────────────────────────────┘
+└───────────────────────────────────────────────┘
 ```
+
+- **Ribbon**：左侧竖条 (w-11 = 44px)，始终可见，包含 Menu 按钮（切换侧边栏）和 FolderOpen 按钮
+- **SidePanel**：通过 `react-resizable-panels` 可拖拽调整宽度（默认 220px，最小 160px，最大 400px）
+- **Separator**：1px 分隔线
+- **主面板**：PaneContainer 递归渲染 PaneNode 树
+- 无传统顶栏，侧边栏可通过 Ribbon 按钮折叠/展开
 
 ### 7.2 色彩系统
 
-采用 **Material Design 3** 色彩系统，通过 CSS 变量定义：
+通过 **Tailwind Config** `theme.extend.colors` 定义，以 CSS class 形式使用（如 `text-ds-on-surface`、`bg-apple-bg-secondary`），非原生 CSS 变量。
 
-| 变量 | 用途 |
-|------|------|
-| `--ds-surface` | 主背景 |
-| `--ds-surface-container` | 容器背景 |
-| `--ds-surface-container-high` | 高层容器 |
-| `--ds-on-surface` | 主文字色 |
-| `--ds-on-surface-variant` | 次要文字色 |
-| `--ds-primary` | 主色调 |
-| `--ds-outline` | 边框色 |
+**三套并存的色彩体系**：
+
+#### Brand 品牌色
+
+| Token | 值 | 用途 |
+|-------|---|------|
+| `brand` | `#1D51DF` | 品牌主色 |
+| `brand-light` | `#4670FE` | 品牌亮色 |
+| `brand-dark` | `#0043D1` | 品牌暗色 |
+| `brand-50` | `#EEF2FE` | 品牌极浅 |
+
+#### DS (Material Design 3 风格)
+
+| Token | 值 | 用途 |
+|-------|---|------|
+| `ds-surface` | `#FCF8FB` | 主背景 |
+| `ds-surface-container` | `#F0EDF1` | 容器背景 |
+| `ds-surface-container-high` | `#EAE7EC` | 高层容器 |
+| `ds-surface-container-lowest` | `#FFFFFF` | 最低容器（白色） |
+| `ds-on-surface` | `#333236` | 主文字色 |
+| `ds-on-surface-variant` | `#605E63` | 次要文字色 |
+| `ds-primary` | `#1D51DF` | 主色调 |
+| `ds-on-primary` | `#FAF8FF` | 主色上文字 |
+| `ds-outline` | `#7C7A7F` | 轮廓色 |
+| `ds-outline-variant` | `#B3B1B7` | 轮廓变体 |
+
+#### Apple (Apple HIG 语义色)
+
+| Token | 值 | 用途 |
+|-------|---|------|
+| `apple-text` | `#333236` | 主文字 |
+| `apple-text-secondary` | `#605E63` | 次要文字 |
+| `apple-text-tertiary` | `#7C7A7F` | 三级文字 |
+| `apple-border` | `#B3B1B7` | 边框 |
+| `apple-border-light` | `rgba(179,177,183,0.2)` | 浅边框 |
+| `apple-bg` | `#FCF8FB` | 主背景 |
+| `apple-bg-secondary` | `#F6F2F6` | 次级背景 |
+
+#### 自定义圆角和阴影
+
+| Token | 值 |
+|-------|---|
+| `rounded-ds` | 8px |
+| `rounded-ds-lg` | 12px |
+| `shadow-ambient` | 品牌色微光阴影 |
+| `shadow-capsule` | 胶囊卡片阴影 |
 
 ### 7.3 组件规范
 
 | 组件 | 样式特征 |
 |------|---------|
-| 侧边栏 | 宽度固定/可拖拽，深色背景 |
-| 文件树 | 缩进层级，图标+文字，hover高亮 |
+| Ribbon 竖条 | w-11 (44px)，始终可见，图标按钮 |
+| 侧边栏 | 可拖拽宽度 (160-400px)，白色背景 |
+| 文件树 | 缩进层级，图标+文字，hover高亮，缩进线 |
 | TabBar | 底部无边框指示器，active态高亮 |
-| 面板分隔条 | 3px 宽/高，hover 变色 |
+| 面板分隔条 | 3px 宽/高，hover 变色 (`bg-brand/20`) |
 | AI 对话界面 | 类 ChatGPT 气泡式布局 |
 | 参数面板 | 底部固定区域，tag 选择器 |
+| 欢迎页 | 渐变背景，5功能卡片 grid，最近打开列表 |
+| 按钮 | `btn-primary-atelier` 石版印刷渐变 (135deg, #1D51DF → #4670FE) |
+| 输入框 | `input-atelier` 统一样式 |
+| 卡片 | `card-atelier` 悬浮动效 |
+
+### 7.4 自定义 CSS 类（index.css）
+
+| 类名前缀 | 用途 |
+|---------|------|
+| `.ribbon-*` | Ribbon 竖条按钮样式 |
+| `.side-panel-*` | 侧面板容器 + 毛玻璃头部 |
+| `.filetree-*` | 文件树所有样式 (folder-row, file-row, chevron, indent-line 等) |
+| `.search-*` | 搜索面板样式 |
+| `.card-atelier` | Digital Atelier 风格卡片悬浮动效 |
+| `.glass-nav` | 毛玻璃导航 (blur 20px) |
+| `.fade-in-up` / `.stagger-*` | 渐入上浮动画 + 交错延时 |
+| `.canvas-editor-mode` | 画布深色主题覆盖 |
 
 ### 7.4 图标库
 
@@ -1073,7 +1194,7 @@ interface StoryboardVersion {
 | 功能 | 状态 | 备注 |
 |------|------|------|
 | 工作区布局（分屏/Tab） | ✅ 已实现 | react-resizable-panels v4 |
-| 文件树（6分类+自定义文件夹） | ✅ 已实现 | 拖拽+多选+右键菜单 |
+| 文件树（平铺+自定义文件夹） | ✅ 已实现 | 拖拽+多选+右键菜单+移动弹窗 |
 | AI 剧本生成 | ✅ 已实现 | GLM5 对接完成 |
 | AI 图片生成 | ✅ 已实现 | Seedream 4.0 对接完成 |
 | AI 视频生成 | ✅ 已实现 | Seedance 1.0/1.5 Pro 对接完成 |
