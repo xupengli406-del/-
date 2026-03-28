@@ -24,6 +24,17 @@ npm-debug.log*
 # Python
 __pycache__/
 *.py[cod]
+.venv/
 
-# 嵌套克隆的仓库（勿作为子模块误提交）
-creative-forge/
+# creative-forge 内部排除
+creative-forge/creative-forge/.git/
+creative-forge/creative-forge/.venv/
+creative-forge/creative-forge/.env
+creative-forge/creative-forge/data/
+creative-forge/creative-forge/uploads/
+
+# server 运行时数据
+server/data/
+server/uploads/*.png
+server/uploads/*.jpg
+server/__pycache__/

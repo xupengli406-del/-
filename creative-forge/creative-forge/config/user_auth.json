@@ -1,0 +1,14 @@
+[
+    {
+        "userId":"testuser1",
+        "username":"bbwang",
+        "ak":"RWYhq1NsLPAMmieux0GC",
+        "authedmodels":
+        {
+            "MaaS_Seedance_1.5_pro":["TkYYmWeEnFUzNMIq"],
+            "MaaS_Seedream_4.0":["YkaQjzeAOhCOycba"],
+            "MaaS_Seedance_1.0_pro":["ExampleEndPoint1","ExampleEndpoint2"],
+            "GLM5":["hQWKGFyhYUzDRWAD"]
+        }
+    }
+]
