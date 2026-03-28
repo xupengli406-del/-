@@ -21,11 +21,11 @@ function LeafPane({ leaf, isOnlyPane }: { leaf: PaneLeaf; isOnlyPane?: boolean }
       onClick={() => setActivePaneId(leaf.id)}
     >
       <TabBar leaf={leaf} />
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         {activeTab ? (
-          <DocumentRenderer docId={activeTab.docId} />
+          <DocumentRenderer docId={activeTab.docId} paneId={leaf.id} />
         ) : (
-          <WelcomeTab />
+          <WelcomeTab paneId={leaf.id} />
         )}
       </div>
     </div>
@@ -35,7 +35,7 @@ function LeafPane({ leaf, isOnlyPane }: { leaf: PaneLeaf; isOnlyPane?: boolean }
 function SplitPane({ split }: { split: PaneSplit }) {
   // react-resizable-panels v4: orientation, Panel/Separator 必须是 Group 直接子元素
   return (
-    <Group orientation={split.direction}>
+    <Group orientation={split.direction} className="h-full w-full">
       {split.children.map((child, i) => (
         <Fragment key={child.id}>
           {i > 0 && (
@@ -51,6 +51,7 @@ function SplitPane({ split }: { split: PaneSplit }) {
             id={child.id}
             defaultSize={split.sizes[i] ? `${split.sizes[i]}%` : undefined}
             minSize="15%"
+            style={{ overflow: 'hidden' }}
           >
             <PaneContainer node={child} />
           </Panel>

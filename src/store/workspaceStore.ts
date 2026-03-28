@@ -37,6 +37,8 @@ interface WorkspaceState {
   buildFileTree: () => FileTreeItem[]
   /** 画布文件名变更后同步所有 pane 内标签标题 */
   refreshTabLabels: () => void
+  /** 删除文件时，关闭所有引用该文件的 tab */
+  closeTabsByFileId: (fileId: string) => void
 }
 
 const initialPaneId = generatePaneId()
@@ -45,8 +47,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   paneLayout: {
     kind: 'leaf',
     id: initialPaneId,
-    tabs: [],
-    activeTabIndex: -1,
+    tabs: [{ docId: { type: 'welcome', id: 'welcome_init' }, label: '新标签页' }],
+    activeTabIndex: 0,
   } as PaneLeaf,
 
   activePaneId: initialPaneId,
@@ -71,6 +73,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((s) => ({
       paneLayout: mapPaneLabels(s.paneLayout, canvasState),
     }))
+  },
+
+  closeTabsByFileId: (fileId: string) => {
+    const state = get()
+    // 遍历所有 leaf，移除引用该 fileId 的 tab
+    const cleaned = removeTabsFromTree(state.paneLayout, fileId)
+    let collapsed = collapseEmptyLeaves(cleaned)
+    // 折叠后若根 leaf 变空，补 welcome tab
+    if (collapsed.kind === 'leaf' && collapsed.tabs.length === 0) {
+      collapsed = { ...collapsed, tabs: [{ docId: { type: 'welcome', id: `welcome_${Date.now()}` }, label: '新标签页' }], activeTabIndex: 0 }
+    }
+    let newActivePaneId = state.activePaneId
+    if (!findLeafById(collapsed, newActivePaneId)) {
+      newActivePaneId = getFirstLeafId(collapsed)
+    }
+    set({ paneLayout: collapsed, activePaneId: newActivePaneId })
   },
 
   setActivePaneId: (paneId: string) => set({ activePaneId: paneId }),
@@ -151,11 +169,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   // 关闭 tab
   closeTab: (paneId: string, tabIndex: number) => {
     const state = get()
+    const isRootLeaf = state.paneLayout.kind === 'leaf' && state.paneLayout.id === paneId
+
     const updated = updateLeafInTree(state.paneLayout, paneId, (leaf) => {
       const tabs = leaf.tabs.filter((_, i) => i !== tabIndex)
       let activeTabIndex = leaf.activeTabIndex
       if (tabs.length === 0) {
-        activeTabIndex = -1
+        if (isRootLeaf) {
+          // 根 leaf（无分屏）关闭最后一个 tab 时，自动补 welcome tab
+          tabs.push({ docId: { type: 'welcome', id: `welcome_${Date.now()}` }, label: '新标签页' })
+          activeTabIndex = 0
+        } else {
+          // 分屏中的 leaf 允许变空，后续由 collapseEmptyLeaves 折叠
+          activeTabIndex = -1
+        }
       } else if (tabIndex <= activeTabIndex) {
         activeTabIndex = Math.max(0, activeTabIndex - 1)
       }
@@ -163,7 +190,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     })
 
     // 如果 leaf 为空且在 split 中，折叠它
-    const collapsed = collapseEmptyLeaves(updated)
+    let collapsed = collapseEmptyLeaves(updated)
+
+    // 折叠后若根 leaf 变空，补 welcome tab
+    if (collapsed.kind === 'leaf' && collapsed.tabs.length === 0) {
+      collapsed = { ...collapsed, tabs: [{ docId: { type: 'welcome', id: `welcome_${Date.now()}` }, label: '新标签页' }], activeTabIndex: 0 }
+    }
 
     // 如果当前活跃 pane 被折叠了，切换到第一个剩余 leaf
     let newActivePaneId = state.activePaneId
@@ -397,4 +429,22 @@ function findLeafById(node: PaneNode, leafId: string): PaneLeaf | null {
 function getFirstLeafId(node: PaneNode): string {
   if (node.kind === 'leaf') return node.id
   return getFirstLeafId(node.children[0])
+}
+
+// 从所有 leaf 中移除引用指定 fileId 的 tab
+function removeTabsFromTree(node: PaneNode, fileId: string): PaneNode {
+  if (node.kind === 'leaf') {
+    const tabs = node.tabs.filter((t) => t.docId.id !== fileId)
+    let activeTabIndex = node.activeTabIndex
+    if (tabs.length === 0) {
+      activeTabIndex = -1
+    } else if (activeTabIndex >= tabs.length) {
+      activeTabIndex = tabs.length - 1
+    }
+    return { ...node, tabs, activeTabIndex }
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => removeTabsFromTree(c, fileId)),
+  }
 }

@@ -9,8 +9,8 @@ const cards = [
     icon: FileText,
     title: '故事/脚本生成',
     desc: '利用AI重构宏大的叙事结构',
-    iconBg: '#EEF2FF',
-    iconColor: '#4A6CF7',
+    iconBg: '#EFF6FF',
+    iconColor: '#2563EB',
     stagger: 'stagger-1',
   },
   {
@@ -18,8 +18,8 @@ const cards = [
     icon: Image,
     title: '分镜图片生成',
     desc: '精准呈现视觉构图与氛围',
-    iconBg: '#FDF2F8',
-    iconColor: '#EC4899',
+    iconBg: '#FAF5FF',
+    iconColor: '#9333EA',
     stagger: 'stagger-2',
   },
   {
@@ -27,8 +27,8 @@ const cards = [
     icon: Film,
     title: '分镜视频生成',
     desc: '为静态分镜注入动态生命力',
-    iconBg: '#FFF7ED',
-    iconColor: '#F97316',
+    iconBg: '#FFF1F2',
+    iconColor: '#E11D48',
     stagger: 'stagger-3',
   },
   {
@@ -36,8 +36,8 @@ const cards = [
     icon: Music,
     title: '音乐音效生成',
     desc: 'AI合成专属的电影感声效',
-    iconBg: '#FEF2F2',
-    iconColor: '#F87171',
+    iconBg: '#FFFBEB',
+    iconColor: '#D97706',
     stagger: 'stagger-4',
   },
   {
@@ -45,14 +45,14 @@ const cards = [
     icon: PenTool,
     title: '画布自由创作',
     desc: '在无限画布上开始您的灵感',
-    iconBg: '#F5F3FF',
-    iconColor: '#8B5CF6',
-    highlighted: true,
+    iconBg: '#F0FDFA',
+    iconColor: '#0D9488',
+    dashed: true,
     stagger: 'stagger-5',
   },
 ]
 
-export default function WelcomeTab() {
+export default function WelcomeTab({ paneId }: { paneId?: string }) {
   const { openDocument, openDocumentInPlace } = useWorkspaceStore()
 
   const canvasFiles = useCanvasStore((s) => s.canvasFiles)
@@ -71,7 +71,7 @@ export default function WelcomeTab() {
         const nodeId = cs.addScriptNode()
         const fileId = cs.saveCanvasAsFile('新剧本', 'script')
         cs.setEditingProjectId(fileId)
-        openDocumentInPlace({ type: 'script', id: nodeId })
+        openDocumentInPlace({ type: 'script', id: nodeId }, paneId)
         break
       }
       case 'image':
@@ -87,14 +87,14 @@ export default function WelcomeTab() {
         const fileId = cs.saveCanvasAsFile(nameMap[key], key as 'image' | 'video' | 'audio')
         cs.setEditingProjectId(fileId)
         cs.setInitialAIMode(key as 'image' | 'video' | 'audio')
-        openDocumentInPlace({ type: 'ai', id: fileId })
+        openDocumentInPlace({ type: 'ai', id: fileId }, paneId)
         break
       }
       case 'canvas': {
         cs.clearCanvas()
         const canvasFileId = cs.saveCanvasAsFile('新画布', 'canvas')
         cs.setEditingProjectId(canvasFileId)
-        openDocumentInPlace({ type: 'canvas', id: canvasFileId })
+        openDocumentInPlace({ type: 'canvas', id: canvasFileId }, paneId)
         break
       }
     }
@@ -118,82 +118,72 @@ export default function WelcomeTab() {
   }
 
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-ds-surface relative">
-      {/* 装饰性渐变背景 — 模拟 Stitch 蓝紫色光晕 */}
-      <div
-        className="absolute top-0 right-0 w-[600px] h-[500px] pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at 75% 15%, rgba(70, 112, 254, 0.12) 0%, rgba(139, 92, 246, 0.06) 35%, transparent 70%)',
-        }}
-      />
-      {/* 右上角三角装饰 */}
-      <svg className="absolute top-0 right-0 w-[260px] h-[220px] pointer-events-none opacity-[0.18]" viewBox="0 0 260 220" fill="none">
-        <path d="M260 0L260 220L60 0Z" fill="url(#deco-grad)" />
-        <defs><linearGradient id="deco-grad" x1="160" y1="0" x2="260" y2="220"><stop stopColor="#4670FE" /><stop offset="1" stopColor="#EBCCFB" /></linearGradient></defs>
-      </svg>
+    <div className="flex-1 h-full overflow-y-auto bg-white relative" style={{ lineHeight: 1.7 }}>
+      {/* 装饰性渐变背景 */}
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-[#1D51DF]/5 via-transparent to-[#6E567D]/5 opacity-40" />
 
-      <div className="relative max-w-[900px] mx-auto px-12 pt-[72px] pb-16">
+      <div className="relative max-w-6xl mx-auto px-12 pt-24 pb-12 z-10">
         {/* 标语 */}
-        <h1 className="text-[34px] font-bold text-ds-on-background leading-[1.4] tracking-[-0.02em] fade-in-up">
-          技术让创作变得容易，<br />
-          人类让创作变得伟大
-        </h1>
-        <p className="mt-4 text-[15px] text-ds-on-surface-variant fade-in-up stagger-1">
-          你想从哪里开始？
-        </p>
+        <section className="mb-20 fade-in-up">
+          <h1 className="text-[2.75rem] font-bold tracking-tight text-ds-on-background leading-tight mb-4">
+            技术让创作变得容易，<br />
+            人类让创作变得伟大
+          </h1>
+          <p className="text-lg text-ds-on-surface-variant font-medium">
+            你想从哪里开始？
+          </p>
+        </section>
 
         {/* 五个功能卡片 */}
-        <div className="mt-12 flex gap-4">
+        <section className="grid grid-cols-5 gap-4 mb-20">
           {cards.map((card) => {
             const Icon = card.icon
-            const isHighlighted = 'highlighted' in card && card.highlighted
+            const isDashed = 'dashed' in card && card.dashed
             return (
               <button
                 key={card.key}
                 onClick={() => handleClick(card.key)}
-                className={`card-atelier fade-in-up ${card.stagger} group flex flex-col items-start gap-3 flex-1 min-w-0 p-5 bg-ds-surface-container-lowest rounded-ds-xl cursor-pointer`}
-                style={isHighlighted ? { borderColor: 'rgba(139, 92, 246, 0.25)' } : undefined}
+                className={`fade-in-up ${card.stagger} group flex flex-col items-start p-6 bg-white rounded-2xl cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-[#1D51DF]/5 transition-all duration-300 ${
+                  isDashed
+                    ? 'border-dashed border-2 border-ds-outline-variant/30'
+                    : 'border border-ds-outline-variant/20'
+                }`}
               >
                 <div
-                  className="w-11 h-11 rounded-ds-lg flex items-center justify-center flex-shrink-0"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-colors"
                   style={{ backgroundColor: card.iconBg }}
                 >
                   <Icon size={22} style={{ color: card.iconColor }} strokeWidth={1.5} />
                 </div>
-                <div className="text-left">
-                  <div className="text-[13px] font-semibold text-ds-on-surface">{card.title}</div>
-                  <div className="mt-1.5 text-[11px] text-ds-on-surface-variant leading-[1.6]">{card.desc}</div>
-                </div>
+                <h3 className="text-base font-bold text-ds-on-surface mb-2 text-left">{card.title}</h3>
+                <p className="text-xs text-ds-on-surface-variant leading-relaxed text-left">{card.desc}</p>
               </button>
             )
           })}
-        </div>
+        </section>
 
         {/* 最近打开 */}
         {recentFiles.length > 0 && (
-          <div className="mt-14 fade-in-up stagger-5">
-            <div className="flex items-center gap-2 text-[13px] text-ds-on-surface-variant mb-4">
+          <section className="fade-in-up stagger-5">
+            <div className="flex items-center gap-2 mb-6 opacity-80">
               <Clock size={14} />
-              <span>最近打开</span>
+              <h2 className="text-sm font-semibold tracking-wider text-ds-on-surface uppercase">最近打开</h2>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-3">
               {recentFiles.map((file, i) => (
-                <div key={file.id} className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleOpenRecent(file.id)}
-                    className="card-atelier flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-ds-surface-container-lowest hover:shadow-float transition-all"
-                  >
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 ? 'bg-brand' : 'bg-ds-outline-variant'}`} />
-                    <span className="text-[13px] text-ds-on-surface font-medium">{file.name}</span>
-                    <span className="text-[11px] text-ds-on-surface-variant ml-1">{formatTime(file.updatedAt)}</span>
-                  </button>
-                  {i < recentFiles.length - 1 && (
-                    <span className="w-px h-5 bg-ds-outline-variant/40 flex-shrink-0" />
-                  )}
-                </div>
+                <button
+                  key={file.id}
+                  onClick={() => handleOpenRecent(file.id)}
+                  className="inline-flex items-center bg-white px-4 py-2.5 rounded-full border border-ds-outline-variant/20 hover:bg-ds-surface-container-low transition-colors cursor-pointer"
+                >
+                  <span className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${i === 0 ? 'bg-brand' : 'bg-ds-on-surface-variant/20'}`} />
+                  <span className="text-sm font-medium text-ds-on-surface">{file.name}</span>
+                  <span className="mx-3 h-3 w-px bg-ds-outline-variant/40" />
+                  <span className="text-xs text-ds-on-surface-variant">{formatTime(file.updatedAt)}</span>
+                </button>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>

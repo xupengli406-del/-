@@ -32,6 +32,14 @@ function lsWrite<T>(key: string, data: T[]): void {
   }
 }
 
+/** 合并两个数组，以 id 去重（remote 优先），保留 local 独有项 */
+function mergeById<T extends { id: string }>(remote: T[], local: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const item of local) map.set(item.id, item)
+  for (const item of remote) map.set(item.id, item)
+  return Array.from(map.values())
+}
+
 // ===== 资产 API =====
 
 export interface AssetPayload {
@@ -48,10 +56,11 @@ export async function fetchAssets(): Promise<AssetPayload[]> {
   try {
     const res = await fetch(`${API_BASE}/api/assets`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    // 同步到 localStorage
-    lsWrite(LS_KEYS.assets, data)
-    return data
+    const remote = await res.json()
+    const local = lsRead<AssetPayload>(LS_KEYS.assets)
+    const merged = mergeById<AssetPayload>(remote, local)
+    lsWrite(LS_KEYS.assets, merged)
+    return merged
   } catch {
     console.warn('后端不可用，从 localStorage 读取资产')
     return lsRead<AssetPayload>(LS_KEYS.assets)
@@ -124,9 +133,11 @@ export async function fetchCanvasFiles(): Promise<CanvasFilePayload[]> {
   try {
     const res = await fetch(`${API_BASE}/api/canvas-files`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    lsWrite(LS_KEYS.canvasFiles, data)
-    return data
+    const remote = await res.json()
+    const local = lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
+    const merged = mergeById<CanvasFilePayload>(remote, local)
+    lsWrite(LS_KEYS.canvasFiles, merged)
+    return merged
   } catch {
     console.warn('后端不可用，从 localStorage 读取画布文件')
     return lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
@@ -199,9 +210,11 @@ export async function fetchGenerateHistory(): Promise<GenerateHistoryPayload[]> 
   try {
     const res = await fetch(`${API_BASE}/api/generate-history`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    lsWrite(LS_KEYS.generateHistory, data)
-    return data
+    const remote = await res.json()
+    const local = lsRead<GenerateHistoryPayload>(LS_KEYS.generateHistory)
+    const merged = mergeById<GenerateHistoryPayload>(remote, local)
+    lsWrite(LS_KEYS.generateHistory, merged)
+    return merged
   } catch {
     console.warn('后端不可用，从 localStorage 读取对话历史')
     return lsRead<GenerateHistoryPayload>(LS_KEYS.generateHistory)

@@ -13,10 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  Type,
   Sparkles,
   MonitorPlay,
-  AtSign,
   FileText,
 } from 'lucide-react'
 import { useCanvasStore } from '../../store/canvasStore'
@@ -627,11 +625,6 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
             </>
           )}
         </div>
-
-        {/* 文字生成按钮 */}
-        <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors">
-          <Type size={12} />
-        </button>
       </>
     )
   }
@@ -774,11 +767,6 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
             </>
           )}
         </div>
-
-        {/* @ 按钮 */}
-        <button className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs text-apple-text-secondary hover:bg-apple-bg-secondary transition-colors">
-          <AtSign size={14} />
-        </button>
       </>
     )
   }

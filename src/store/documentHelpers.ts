@@ -9,7 +9,6 @@ import {
   Type,
   LayoutDashboard,
   MessageSquare,
-  Plus,
   type LucideIcon,
 } from 'lucide-react'
 import type { DocumentId, DocumentType } from './workspaceTypes'
@@ -33,7 +32,7 @@ const iconMap: Record<DocumentType, LucideIcon> = {
   storyboardFrame: Film,
   media: Image,
   ai: MessageSquare,
-  welcome: Plus,
+  welcome: FileText,
 }
 
 export function getDocumentIcon(docId: DocumentId): LucideIcon {

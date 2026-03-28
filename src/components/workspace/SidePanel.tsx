@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Menu, Plus, FileText, Image, Video, Music, LayoutDashboard, FolderPlus, Folder } from 'lucide-react'
+import { Plus, FileText, Image, Video, Music, LayoutDashboard, FolderPlus, Folder } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useCanvasStore } from '../../store/canvasStore'
 import FileTree from './FileTree'
 import type { DocumentId } from '../../store/workspaceTypes'
 
 export default function SidePanel() {
-  const { activeSidePanel, setActiveSidePanel, openDocument } = useWorkspaceStore()
+  const { activeSidePanel, openDocument } = useWorkspaceStore()
   const { addCustomFolder } = useCanvasStore()
   const hasFiles = useCanvasStore((s) => s.canvasFiles.length > 0)
 
@@ -52,24 +52,18 @@ export default function SidePanel() {
   if (!activeSidePanel) return null
 
   return (
-    <div className="side-panel">
-      {/* 头部: ≡ + 我的项目 + (+) */}
-      <div className="side-panel-header">
-        <button
-          onClick={() => setActiveSidePanel(null)}
-          className="w-7 h-7 flex items-center justify-center rounded-ds text-ds-on-surface-variant hover:bg-ds-surface-container-high transition-colors flex-shrink-0"
-          title="收起侧边栏"
-        >
-          <Menu size={16} strokeWidth={1.5} />
-        </button>
-        <span className="text-[14px] font-bold text-ds-on-surface flex-1 truncate">我的项目</span>
+    <div className="h-full flex flex-col bg-white">
+      {/* 头部: 我的项目 + (+) */}
+      <div className="h-10 flex items-end px-4 flex-shrink-0">
+        <div className="flex items-center gap-2 h-8 flex-1 min-w-0">
+        <span className="text-sm font-semibold tracking-tight text-ds-on-surface flex-1 truncate">我的项目</span>
         <div className="relative">
           <button
             onClick={() => setShowNewMenu(v => !v)}
-            className="w-7 h-7 flex items-center justify-center rounded-full border border-ds-outline-variant text-ds-on-surface-variant hover:bg-ds-surface-container-high hover:text-ds-on-surface transition-colors flex-shrink-0"
+            className="w-6 h-6 flex items-center justify-center rounded bg-ds-surface-container-highest hover:bg-ds-outline-variant/30 transition-colors flex-shrink-0"
             title="新建"
           >
-            <Plus size={14} strokeWidth={1.8} />
+            <Plus size={13} strokeWidth={1.8} className="text-ds-on-surface-variant" />
           </button>
           {showNewMenu && (
             <div
@@ -99,23 +93,30 @@ export default function SidePanel() {
             </div>
           )}
         </div>
+        </div>
       </div>
 
-      {/* 蓝色小文件夹图标 — 仅在无文件时显示（匹配图一空状态） */}
+      {/* 蓝色文件夹图标 */}
       {!hasFiles && (
         <div className="px-4 pt-2 pb-1 flex-shrink-0">
           <Folder size={20} className="text-brand" fill="#4670FE" strokeWidth={0} />
         </div>
       )}
 
+      {/* 空状态 */}
+      {!hasFiles && (
+        <div className="flex-grow flex flex-col items-center justify-start pt-12 px-6 text-center">
+          <FileText size={48} className="text-ds-on-surface-variant/10 mb-4" strokeWidth={1} />
+          <p className="text-sm text-ds-on-surface-variant font-medium">暂无文件</p>
+          <p className="text-[11px] text-ds-on-surface-variant/60 mt-2 leading-relaxed">
+            点击上方 +<br />新建文件或文件夹
+          </p>
+        </div>
+      )}
+
       {/* 面板内容 */}
       <div className="flex-1 overflow-hidden">
         {activeSidePanel === 'files' && <FileTree />}
-      </div>
-
-      {/* 底部蓝色装饰条 */}
-      <div className="flex-shrink-0 pb-2 px-2">
-        <div className="h-[3px] rounded-full bg-gradient-to-r from-brand to-brand-light" style={{ width: '35%' }} />
       </div>
     </div>
   )

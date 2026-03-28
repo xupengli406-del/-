@@ -205,6 +205,8 @@ interface CanvasStore {
   removeCustomFolder: (id: string) => void
   // 文件归属操作（拖拽文件到文件夹）
   moveFileToFolder: (fileId: string, folderId: string | undefined) => void
+  // 文件夹归属操作（拖拽文件夹到另一个文件夹）
+  moveFolderToFolder: (folderId: string, targetParentId: string | undefined) => void
 
   appendCanvasFileMediaVersion: (
     fileId: string,
@@ -1241,6 +1243,21 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }))
     const file = get().canvasFiles.find((f) => f.id === fileId)
     if (file) updateCanvasFileAPI(fileId, canvasFileToPayload(file))
+  },
+
+  moveFolderToFolder: (folderId: string, targetParentId: string | undefined) => {
+    // 防止把文件夹拖到自身或自身的后代中
+    const isDescendant = (parentId: string, childId: string): boolean => {
+      if (parentId === childId) return true
+      const children = get().customFolders.filter((f) => f.parentId === parentId)
+      return children.some((c) => isDescendant(c.id, childId))
+    }
+    if (targetParentId && isDescendant(folderId, targetParentId)) return
+    set((s) => ({
+      customFolders: s.customFolders.map((f) =>
+        f.id === folderId ? { ...f, parentId: targetParentId ?? null } : f
+      ),
+    }))
   },
 }))
 
