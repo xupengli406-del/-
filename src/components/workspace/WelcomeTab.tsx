@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { FileText, Image, Video, Music, LayoutDashboard, X, Clock } from 'lucide-react'
+import { FileText, Image, Film, Music, PenTool, Clock } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useCanvasStore } from '../../store/canvasStore'
 
@@ -8,51 +8,55 @@ const cards = [
     key: 'script',
     icon: FileText,
     title: '故事/脚本生成',
-    desc: '用 AI 编写剧本和故事大纲',
-    color: 'text-blue-500',
-    bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300',
+    desc: '利用AI重构宏大的叙事结构',
+    iconBg: '#EEF2FF',
+    iconColor: '#4A6CF7',
+    stagger: 'stagger-1',
   },
   {
     key: 'image',
     icon: Image,
     title: '分镜图片生成',
-    desc: '生成角色立绘、场景和分镜图',
-    color: 'text-purple-500',
-    bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200 hover:border-purple-300',
+    desc: '精准呈现视觉构图与氛围',
+    iconBg: '#FDF2F8',
+    iconColor: '#EC4899',
+    stagger: 'stagger-2',
   },
   {
     key: 'video',
-    icon: Video,
+    icon: Film,
     title: '分镜视频生成',
-    desc: '将静态分镜转化为动态视频',
-    color: 'text-rose-500',
-    bg: 'bg-rose-50 hover:bg-rose-100 border-rose-200 hover:border-rose-300',
+    desc: '为静态分镜注入动态生命力',
+    iconBg: '#FFF7ED',
+    iconColor: '#F97316',
+    stagger: 'stagger-3',
   },
   {
     key: 'audio',
     icon: Music,
     title: '音乐音效生成',
-    desc: '生成配乐、音效和角色配音',
-    color: 'text-amber-500',
-    bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300',
+    desc: 'AI合成专属的电影感声效',
+    iconBg: '#FEF2F2',
+    iconColor: '#F87171',
+    stagger: 'stagger-4',
   },
   {
     key: 'canvas',
-    icon: LayoutDashboard,
+    icon: PenTool,
     title: '画布自由创作',
-    desc: '在画布上自由组合各类节点',
-    color: 'text-teal-500',
-    bg: 'bg-teal-50 hover:bg-teal-100 border-teal-200 hover:border-teal-300',
+    desc: '在无限画布上开始您的灵感',
+    iconBg: '#F5F3FF',
+    iconColor: '#8B5CF6',
+    highlighted: true,
+    stagger: 'stagger-5',
   },
-] as const
+]
 
 export default function WelcomeTab() {
-  const { openDocument, openDocumentInPlace, closeTab, activePaneId } = useWorkspaceStore()
+  const { openDocument, openDocumentInPlace } = useWorkspaceStore()
 
-  // 只订阅 canvasFiles 数组引用，不订阅整个 store
   const canvasFiles = useCanvasStore((s) => s.canvasFiles)
 
-  // 最近文件：按 updatedAt 降序取前 3 个（用 useMemo 稳定引用）
   const recentFiles = useMemo(
     () => [...canvasFiles].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3),
     [canvasFiles]
@@ -96,25 +100,12 @@ export default function WelcomeTab() {
     }
   }
 
-  // 关闭当前 welcome 标签页
-  const handleClose = () => {
-    const state = useWorkspaceStore.getState()
-    const pane = findLeaf(state.paneLayout, activePaneId)
-    if (!pane) return
-    const idx = pane.activeTabIndex
-    if (idx >= 0) {
-      closeTab(activePaneId, idx)
-    }
-  }
-
-  // 打开最近文件
   const handleOpenRecent = (fileId: string) => {
     const store = useCanvasStore.getState()
     store.setEditingProjectId(fileId)
     openDocument({ type: 'canvas', id: fileId })
   }
 
-  // 格式化时间
   const formatTime = (ts: number) => {
     const diff = Date.now() - ts
     const mins = Math.floor(diff / 60000)
@@ -127,31 +118,52 @@ export default function WelcomeTab() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-white">
-      <div className="max-w-3xl w-full text-center space-y-10 px-6">
-        {/* 标语 */}
-        <div className="space-y-3">
-          <h1 className="text-2xl font-semibold text-apple-text tracking-wide">
-            技术让创作变得容易，人类让创作变得伟大
-          </h1>
-          <p className="text-sm text-apple-text-secondary">
-            你想从哪里开始？
-          </p>
-        </div>
+    <div className="flex-1 h-full overflow-y-auto bg-ds-surface relative">
+      {/* 装饰性渐变背景 — 模拟 Stitch 蓝紫色光晕 */}
+      <div
+        className="absolute top-0 right-0 w-[600px] h-[500px] pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 75% 15%, rgba(70, 112, 254, 0.12) 0%, rgba(139, 92, 246, 0.06) 35%, transparent 70%)',
+        }}
+      />
+      {/* 右上角三角装饰 */}
+      <svg className="absolute top-0 right-0 w-[260px] h-[220px] pointer-events-none opacity-[0.18]" viewBox="0 0 260 220" fill="none">
+        <path d="M260 0L260 220L60 0Z" fill="url(#deco-grad)" />
+        <defs><linearGradient id="deco-grad" x1="160" y1="0" x2="260" y2="220"><stop stopColor="#4670FE" /><stop offset="1" stopColor="#EBCCFB" /></linearGradient></defs>
+      </svg>
 
-        {/* 五个卡片 — 一行排列 */}
-        <div className="flex justify-center gap-3">
+      <div className="relative max-w-[900px] mx-auto px-12 pt-[72px] pb-16">
+        {/* 标语 */}
+        <h1 className="text-[34px] font-bold text-ds-on-background leading-[1.4] tracking-[-0.02em] fade-in-up">
+          技术让创作变得容易，<br />
+          人类让创作变得伟大
+        </h1>
+        <p className="mt-4 text-[15px] text-ds-on-surface-variant fade-in-up stagger-1">
+          你想从哪里开始？
+        </p>
+
+        {/* 五个功能卡片 */}
+        <div className="mt-12 flex gap-4">
           {cards.map((card) => {
             const Icon = card.icon
+            const isHighlighted = 'highlighted' in card && card.highlighted
             return (
               <button
                 key={card.key}
                 onClick={() => handleClick(card.key)}
-                className={`flex flex-col items-center gap-2.5 w-[120px] p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${card.bg}`}
+                className={`card-atelier fade-in-up ${card.stagger} group flex flex-col items-start gap-3 flex-1 min-w-0 p-5 bg-ds-surface-container-lowest rounded-ds-xl cursor-pointer`}
+                style={isHighlighted ? { borderColor: 'rgba(139, 92, 246, 0.25)' } : undefined}
               >
-                <Icon size={26} className={card.color} strokeWidth={1.5} />
-                <span className="text-xs font-medium text-apple-text leading-tight">{card.title}</span>
-                <span className="text-[10px] text-apple-text-tertiary leading-tight">{card.desc}</span>
+                <div
+                  className="w-11 h-11 rounded-ds-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: card.iconBg }}
+                >
+                  <Icon size={22} style={{ color: card.iconColor }} strokeWidth={1.5} />
+                </div>
+                <div className="text-left">
+                  <div className="text-[13px] font-semibold text-ds-on-surface">{card.title}</div>
+                  <div className="mt-1.5 text-[11px] text-ds-on-surface-variant leading-[1.6]">{card.desc}</div>
+                </div>
               </button>
             )
           })}
@@ -159,50 +171,31 @@ export default function WelcomeTab() {
 
         {/* 最近打开 */}
         {recentFiles.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-xs text-apple-text-tertiary flex items-center justify-center gap-1.5">
-              <Clock size={12} />
-              最近打开
-            </p>
-            <div className="flex justify-center gap-3">
-              {recentFiles.map((file) => (
-                <button
-                  key={file.id}
-                  onClick={() => handleOpenRecent(file.id)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-apple-border-light bg-white hover:bg-apple-bg-secondary transition-colors text-left min-w-[160px] max-w-[200px]"
-                >
-                  <LayoutDashboard size={14} className="text-apple-text-tertiary flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-apple-text truncate">{file.name}</div>
-                    <div className="text-[10px] text-apple-text-tertiary">{formatTime(file.updatedAt)}</div>
-                  </div>
-                </button>
+          <div className="mt-14 fade-in-up stagger-5">
+            <div className="flex items-center gap-2 text-[13px] text-ds-on-surface-variant mb-4">
+              <Clock size={14} />
+              <span>最近打开</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {recentFiles.map((file, i) => (
+                <div key={file.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenRecent(file.id)}
+                    className="card-atelier flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-ds-surface-container-lowest hover:shadow-float transition-all"
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 ? 'bg-brand' : 'bg-ds-outline-variant'}`} />
+                    <span className="text-[13px] text-ds-on-surface font-medium">{file.name}</span>
+                    <span className="text-[11px] text-ds-on-surface-variant ml-1">{formatTime(file.updatedAt)}</span>
+                  </button>
+                  {i < recentFiles.length - 1 && (
+                    <span className="w-px h-5 bg-ds-outline-variant/40 flex-shrink-0" />
+                  )}
+                </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* 关闭标签页 */}
-        <div>
-          <button
-            onClick={handleClose}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs text-apple-text-tertiary hover:text-apple-text-secondary transition-colors"
-          >
-            <X size={12} />
-            关闭标签页
-          </button>
-        </div>
       </div>
     </div>
   )
-}
-
-// 辅助：在 pane 树中查找叶子节点
-function findLeaf(node: import('../../store/workspaceTypes').PaneNode, id: string): import('../../store/workspaceTypes').PaneLeaf | null {
-  if (node.kind === 'leaf') return node.id === id ? node : null
-  for (const child of node.children) {
-    const found = findLeaf(child, id)
-    if (found) return found
-  }
-  return null
 }

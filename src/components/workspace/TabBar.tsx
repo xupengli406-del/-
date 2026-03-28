@@ -98,19 +98,19 @@ export default function TabBar({ leaf }: TabBarProps) {
   const renderSplitMenu = () => splitMenuPos && (
     <div
       ref={splitMenuRef}
-      className="fixed z-[100] bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
-      style={{ left: splitMenuPos.x, top: splitMenuPos.y, transform: 'translateX(-100%)' }}
+      className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
+      style={{ left: splitMenuPos.x, top: splitMenuPos.y, transform: 'translateX(-100%)', border: '1px solid rgba(179,177,183,0.2)' }}
     >
       <button
         onClick={() => handleSplit('horizontal')}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
+        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
       >
         <Columns size={13} />
         左右分屏
       </button>
       <button
         onClick={() => handleSplit('vertical')}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
+        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
       >
         <Rows size={13} />
         上下分屏
@@ -122,27 +122,27 @@ export default function TabBar({ leaf }: TabBarProps) {
   const renderTabContextMenu = () => tabContextMenu && (
     <div
       ref={tabContextMenuRef}
-      className="fixed z-[100] bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[160px]"
-      style={{ left: tabContextMenu.x, top: tabContextMenu.y }}
+      className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[160px]"
+      style={{ left: tabContextMenu.x, top: tabContextMenu.y, border: '1px solid rgba(179,177,183,0.2)' }}
     >
       <button
         onClick={() => { closeTab(leaf.id, tabContextMenu.tabIndex); setTabContextMenu(null) }}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
+        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
       >
         <X size={13} />
         关闭
       </button>
-      <div className="h-px bg-apple-border-light my-1" />
+      <div className="h-px bg-ds-surface-container-high my-1" />
       <button
         onClick={() => { splitPane(leaf.id, 'horizontal'); setTabContextMenu(null) }}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
+        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
       >
         <Columns size={13} />
         左右分屏
       </button>
       <button
         onClick={() => { splitPane(leaf.id, 'vertical'); setTabContextMenu(null) }}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
+        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
       >
         <Rows size={13} />
         上下分屏
@@ -160,13 +160,14 @@ export default function TabBar({ leaf }: TabBarProps) {
         onClick={() => handleTabClick(index)}
         onMouseDown={(e) => handleMouseDown(e, index)}
         onContextMenu={(e) => handleTabContextMenu(e, index)}
-        className={`group relative flex items-center gap-1.5 h-full px-3 text-[12px] cursor-pointer whitespace-nowrap select-none transition-colors border-r border-apple-border-light ${
+        className={`group relative flex items-center gap-1.5 h-full px-3.5 text-[12px] cursor-pointer whitespace-nowrap select-none transition-colors ${
           isActiveTab
-            ? 'bg-white text-apple-text font-medium'
-            : 'text-apple-text-secondary hover:bg-white/50'
+            ? 'bg-white text-ds-on-surface font-medium'
+            : 'text-ds-on-surface-variant hover:bg-ds-surface-container'
         }`}
+        style={{ borderRight: '1px solid rgba(179,177,183,0.15)' }}
       >
-        {Icon && <Icon size={13} className="flex-shrink-0 text-apple-text-tertiary" />}
+        {Icon && <Icon size={13} className="flex-shrink-0 text-ds-on-surface-variant" />}
         <span className="truncate max-w-[160px]">{label}</span>
         {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0" />}
         <button
@@ -182,49 +183,44 @@ export default function TabBar({ leaf }: TabBarProps) {
   }
 
   if (leaf.tabs.length === 0) {
-    // 空标签栏 — 显示"新标签页"占位标签
     return (
-      <div
-        className="flex items-stretch h-[36px] bg-[#f0f0f0] border-b border-apple-border-light flex-shrink-0"
-        onClick={() => setActivePaneId(leaf.id)}
-      >
-        <div className="flex items-stretch flex-1 min-w-0">
-          {/* 新标签页占位 */}
-          <div className="flex items-center gap-1.5 h-full px-3 bg-white text-apple-text font-medium text-[12px] border-r border-apple-border-light">
-            <span>新标签页</span>
-            <button className="flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-all opacity-50 hover:opacity-100">
-              <X size={12} />
+      <div className="flex-shrink-0" onClick={() => setActivePaneId(leaf.id)}>
+        <div className="h-[2px] bg-gradient-to-r from-brand via-[#8B5CF6] to-transparent" />
+        <div className="flex items-stretch h-[36px] bg-ds-surface-container-low">
+          <div className="flex items-stretch flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 h-full px-3.5 bg-white text-ds-on-surface font-medium text-[12px]" style={{ borderRight: '1px solid rgba(179,177,183,0.15)' }}>
+              <span>新标签页</span>
+              <button className="flex-shrink-0 p-0.5 rounded-ds hover:bg-ds-surface-container-high transition-all opacity-40 hover:opacity-100">
+                <X size={12} />
+              </button>
+            </div>
+            <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] h-full hover:bg-ds-surface-container transition-colors">
+              <Plus size={14} className="text-ds-on-surface-variant" />
             </button>
           </div>
-          {/* + 按钮 */}
-          <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] h-full hover:bg-white/50 transition-colors">
-            <Plus size={14} className="text-apple-text-tertiary" />
-          </button>
+          {renderSplitMenu()}
         </div>
-        {renderSplitMenu()}
       </div>
     )
   }
 
   return (
-    <div
-      className="flex items-stretch h-[36px] bg-[#f0f0f0] border-b border-apple-border-light flex-shrink-0"
-      onClick={() => setActivePaneId(leaf.id)}
-    >
-      <div className="flex items-stretch flex-1 min-w-0 overflow-x-auto scrollbar-none">
-        {leaf.tabs.map((tab, i) => {
-          const Icon = getDocumentIcon(tab.docId)
-          const isActiveTab = i === leaf.activeTabIndex
-          return renderTab(tab.label, isActiveTab, i, Icon, tab.dirty)
-        })}
-        {/* + 新标签页按钮 */}
-        <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] flex-shrink-0 hover:bg-white/50 transition-colors">
-          <Plus size={14} className="text-apple-text-tertiary" />
-        </button>
+    <div className="flex-shrink-0" onClick={() => setActivePaneId(leaf.id)}>
+      <div className="h-[2px] bg-gradient-to-r from-brand via-[#8B5CF6] to-transparent" />
+      <div className="flex items-stretch h-[36px] bg-ds-surface-container-low">
+        <div className="flex items-stretch flex-1 min-w-0 overflow-x-auto scrollbar-none">
+          {leaf.tabs.map((tab, i) => {
+            const Icon = getDocumentIcon(tab.docId)
+            const isActiveTab = i === leaf.activeTabIndex
+            return renderTab(tab.label, isActiveTab, i, Icon, tab.dirty)
+          })}
+          <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] flex-shrink-0 hover:bg-ds-surface-container transition-colors">
+            <Plus size={14} className="text-ds-on-surface-variant" />
+          </button>
+        </div>
+        {renderSplitMenu()}
+        {renderTabContextMenu()}
       </div>
-
-      {renderSplitMenu()}
-      {renderTabContextMenu()}
     </div>
   )
 }

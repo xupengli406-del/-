@@ -1,0 +1,30 @@
+---
+description: Google Stitch 设计稿在前端实现时必须像素级还原，不得擅自简化或换风格。
+alwaysApply: true
+---
+
+# Stitch UI 实现规范
+
+本项目中，**Google Stitch**（[Stitch](https://stitch.withgoogle.com/)）视为官方 UI 设计来源。凡标注或约定为来自 Stitch 的界面，实现须 **100% 按设计稿**，不得用「差不多」替代。
+
+## 必须遵守
+
+1. **以导出 HTML 为唯一结构真源**  
+   从 Stitch 导出的页面（或经 MCP `list_screens` / `get_screen` 取得的 `htmlCode`）中的 DOM 顺序、`class`、文案、换行、图标名（Material Symbols 字面量）均视为规范，React 实现应对齐同一套 class 语义（含 Tailwind 任意值与 `stitch-*` 色板）。
+
+2. **字体与图标**  
+   Stitch 使用 **Inter** + **Material Symbols Outlined** 时，须在 `index.html` / 全局样式中引入对应字体，并在组件内用 `<span class="material-symbols-outlined">icon_name</span>`，**不要用 Lucide 等图标替换** Stitch 指定的图标名（如 `auto_stories`、`draw`、`brush`）。
+
+3. **色板**  
+   将 Stitch `tailwind.config` 中的 `theme.extend.colors` 映射到本仓库的 `tailwind.config.js`（建议 `stitch` 命名空间，与 `WelcomeTab` 一致），禁止只凭目测取近似色。
+
+4. **布局与装饰**  
+   间距（如 `px-12 pt-24 pb-12`、`mb-20`、`grid-cols-5 gap-4`）、渐变、虚线边框卡片、右侧 `brush` 装饰、`h-1` 底栏等需与导出稿一致；若需在窄屏下横向滚动以保留桌面五列栅格，用 `overflow-x-auto` + `min-w-[920px]` 等策略，**不得**在未说明的情况下改成响应式少列布局。
+
+5. **数据与占位**  
+   若设计稿含演示数据（如「最近打开」三条示例），在无真实数据时可用相同文案与样式的 **非交互** 占位，保证视觉与 Stitch 一致。
+
+## 禁止
+
+- 自行「优化」间距、圆角、阴影、字号或替换图标集。  
+- 在未与 Stitch 稿对照的情况下新增 eyebrow 文案、关闭按钮等稿面不存在的元素（应用级功能除外须单独说明）。

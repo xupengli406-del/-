@@ -55,6 +55,10 @@ export interface RunNodeRequest {
   length?: number
   watermark?: boolean
   response_format?: 'url' | 'b64_json'
+  /** 参考图 URL 列表（与模型上限一致，由前端按模型能力裁剪） */
+  reference_image_urls?: string[]
+  /** 视频：全能参考 / 仅首帧 / 首帧+尾帧 */
+  video_reference_mode?: 'all' | 'first' | 'both'
 }
 
 export interface RunNodeResponse {

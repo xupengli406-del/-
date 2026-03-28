@@ -43,7 +43,7 @@ function SplitPane({ split }: { split: PaneSplit }) {
               <div
                 className={`${
                   split.direction === 'horizontal' ? 'w-[3px] h-full' : 'h-[3px] w-full'
-                } bg-apple-border-light hover:bg-brand/30 transition-colors`}
+                } bg-ds-surface-container-high/60 hover:bg-brand/20 transition-colors`}
               />
             </Separator>
           )}

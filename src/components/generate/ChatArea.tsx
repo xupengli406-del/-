@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type ChangeEvent, type DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type ChangeEvent, type DragEvent } from 'react'
 import {
   Image,
   Video,
@@ -21,6 +21,13 @@ import {
 } from 'lucide-react'
 import { useCanvasStore } from '../../store/canvasStore'
 import { runNode } from '../../services/imageGeneration'
+import {
+  getImageReferenceMax,
+  getVideoReferenceMax,
+  buildReferenceThumbLabels,
+  type VideoReferenceMode,
+} from '../../services/modelCapabilities'
+import { uploadImageFile, resolvePreviewToUploadedUrl } from '../../lib/referenceImageUpload'
 import {
   modeConfig,
   IMAGE_RATIO_OPTIONS,
@@ -70,6 +77,18 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
   const [videoLength, setVideoLength] = useState(5)
   const [videoRatio, setVideoRatio] = useState('16:9')
   const [videoRefMode, setVideoRefMode] = useState('all')
+
+  const maxRefAttachments = useMemo(() => {
+    if (activeMode === 'image') {
+      const m = imageModels.find((x) => x.name === (selectedImageModel || imageModels[0]?.name))
+      return getImageReferenceMax(m?.id ?? '', m?.name ?? '')
+    }
+    if (activeMode === 'video') {
+      const m = videoModels.find((x) => x.name === (selectedVideoModel || videoModels[0]?.name))
+      return getVideoReferenceMax(m?.id ?? '', m?.name ?? '', videoRefMode as VideoReferenceMode)
+    }
+    return 0
+  }, [activeMode, imageModels, videoModels, selectedImageModel, selectedVideoModel, videoRefMode])
 
   // 剧本模式参数
   const scriptModels = availableModels.filter((m) => m.ability === 'chat_completion')
@@ -142,12 +161,50 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
     if (!prompt.trim() || isSending) return
 
     const config = modeConfig[activeMode]
+
+    const cappedRefAttachments =
+      activeMode === 'image' || activeMode === 'video'
+        ? attachments.slice(0, maxRefAttachments)
+        : []
+
+    let refUrls: string[] = []
+    let refThumbLabels: string[] = []
+    if (cappedRefAttachments.length > 0) {
+      try {
+        for (const att of cappedRefAttachments) {
+          if (att.type === 'file' && att.file?.type.startsWith('image/')) {
+            refUrls.push(await uploadImageFile(att.file))
+          } else if (att.type === 'reference' && att.previewUrl) {
+            refUrls.push(await resolvePreviewToUploadedUrl(att.previewUrl, att.name))
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '参考图处理失败'
+        window.alert(msg)
+        return
+      }
+      const vm = activeMode === 'video' ? (videoRefMode as VideoReferenceMode) : 'all'
+      refThumbLabels = buildReferenceThumbLabels(
+        activeMode === 'image' ? 'image' : 'video',
+        vm,
+        refUrls.length
+      )
+    }
+
     const newItem = {
       id: `gen_${Date.now()}`,
       mode: activeMode,
       prompt: prompt.trim(),
       status: 'generating' as const,
       createdAt: Date.now(),
+      ...(refUrls.length > 0
+        ? {
+            referenceImageUrls: refUrls,
+            referenceMode:
+              activeMode === 'video' ? (videoRefMode as 'all' | 'first' | 'both') : undefined,
+            referenceThumbLabels: refThumbLabels,
+          }
+        : {}),
     }
     addGenerateHistoryItem(newItem)
     onSelectItem(newItem.id)
@@ -206,8 +263,24 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
           type: config.apiType,
           prompt: currentPrompt,
           model,
-          ...(activeMode === 'image' ? { size: imageResolution, response_format: 'url' as const } : {}),
-          ...(activeMode === 'video' ? { length: videoLength } : {}),
+          ...(activeMode === 'image'
+            ? {
+                size: imageResolution,
+                response_format: 'url' as const,
+                ...(refUrls.length > 0 ? { reference_image_urls: refUrls } : {}),
+              }
+            : {}),
+          ...(activeMode === 'video'
+            ? {
+                length: videoLength,
+                ...(refUrls.length > 0
+                  ? {
+                      reference_image_urls: refUrls,
+                      video_reference_mode: videoRefMode as 'all' | 'first' | 'both',
+                    }
+                  : {}),
+              }
+            : {}),
         })
 
         const contentUrl = result.outputs.content_url || ''
@@ -281,7 +354,13 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
         previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
         name: file.name,
       }))
-      setAttachments((prev) => [...prev, ...newFiles])
+      setAttachments((prev) => {
+        const merged = [...prev, ...newFiles]
+        if ((activeMode === 'image' || activeMode === 'video') && maxRefAttachments > 0) {
+          return merged.slice(0, maxRefAttachments)
+        }
+        return merged
+      })
       return
     }
 
@@ -297,13 +376,19 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
             name: refData.name || '参考内容',
             refId: refData.id,
           }
-          setAttachments((prev) => [...prev, newRef])
+          setAttachments((prev) => {
+            const merged = [...prev, newRef]
+            if ((activeMode === 'image' || activeMode === 'video') && maxRefAttachments > 0) {
+              return merged.slice(0, maxRefAttachments)
+            }
+            return merged
+          })
         }
       }
     } catch {
       // 忽略解析错误
     }
-  }, [])
+  }, [activeMode, maxRefAttachments])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -808,6 +893,20 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
             className="max-w-[85%] bg-brand-50 rounded-2xl rounded-tr-md px-4 py-3 cursor-pointer transition-colors hover:bg-brand-50/80"
             onClick={() => onSelectItem(item.id)}
           >
+            {item.referenceImageUrls && item.referenceImageUrls.length > 0 && (
+              <div className="flex gap-2 mb-2 flex-wrap justify-end">
+                {item.referenceImageUrls.map((url, ri) => (
+                  <div key={`${item.id}-u-${ri}`} className="flex flex-col items-center gap-0.5">
+                    <span className="text-[9px] text-apple-text-secondary">
+                      {item.referenceThumbLabels?.[ri] ?? `参考${ri + 1}`}
+                    </span>
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-brand/20 bg-white">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <p className="text-sm text-apple-text leading-relaxed">{item.prompt}</p>
           </div>
         </div>

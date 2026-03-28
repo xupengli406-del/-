@@ -41,7 +41,7 @@ function extractCanvasFileId(itemId: string): string | null {
 }
 
 export default function FileTree() {
-  const { buildFileTree, fileTreeExpandedFolders, toggleFolder, openDocument, openDocumentInPlace, splitPane, activePaneId } = useWorkspaceStore()
+  const { buildFileTree, fileTreeExpandedFolders, toggleFolder, openDocument, openDocumentInPlace, splitPane, activePaneId, refreshTabLabels } = useWorkspaceStore()
   const { customFolders, addCustomFolder, renameCustomFolder, removeCustomFolder, moveFileToFolder } = useCanvasStore()
 
   // 右键菜单
@@ -119,10 +119,6 @@ export default function FileTree() {
       renameInputRef.current.select()
     }
   }, [renamingId])
-
-  const handleDoubleClick = useCallback((docId: DocumentId) => {
-    openDocument(docId)
-  }, [openDocument])
 
   // 文件单击 — 支持 Ctrl/Shift 多选，普通单击在当前标签页打开
   const handleFileClick = useCallback((e: React.MouseEvent, itemId: string, docId?: DocumentId) => {
@@ -394,22 +390,29 @@ export default function FileTree() {
       if (renamingId.startsWith('folder_')) {
         renameCustomFolder(renamingId, newName)
       }
+      let renamedFile = false
       if (renamingId.startsWith('canvas_')) {
         const canvasId = renamingId.replace('canvas_', '')
         useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
+        renamedFile = true
       }
       if (renamingId.startsWith('ai_')) {
         const canvasId = renamingId.replace('ai_', '')
         useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
+        renamedFile = true
       }
       if (renamingId.startsWith('script_')) {
         const canvasId = renamingId.replace('script_', '')
         useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
+        renamedFile = true
+      }
+      if (renamedFile) {
+        refreshTabLabels()
       }
     }
     setRenamingId(null)
     setRenameValue('')
-  }, [renamingId, renameValue, renameCustomFolder])
+  }, [renamingId, renameValue, renameCustomFolder, refreshTabLabels])
 
   const cancelRename = useCallback(() => {
     setRenamingId(null)
@@ -597,7 +600,6 @@ export default function FileTree() {
         draggable
         onDragStart={(e) => handleDragStart(e, item.id)}
         onClick={(e) => handleFileClick(e, item.id, item.docId)}
-        onDoubleClick={() => item.docId && handleDoubleClick(item.docId)}
         onContextMenu={(e) => item.docId && handleFileContextMenu(e, item.id, item.docId)}
         className={`filetree-file-row ${isSelected ? 'filetree-file-selected' : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -618,7 +620,16 @@ export default function FileTree() {
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="filetree-file-label">{item.label}</span>
+          <span
+            className="filetree-file-label"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              startRename(item.id, item.label)
+            }}
+          >
+            {item.label}
+          </span>
         )}
       </div>
     )
@@ -653,6 +664,7 @@ export default function FileTree() {
     <div className="h-full flex flex-col">
       {/* 子工具栏 */}
       <div className="filetree-toolbar">
+        <span className="text-[13px] font-semibold text-apple-text flex-1 pl-1">我的项目</span>
         <div className="relative">
           <button onClick={() => setShowNewMenu((v) => !v)} className="filetree-toolbar-btn" title="新建">
             <Plus size={14} strokeWidth={1.5} />
@@ -660,7 +672,7 @@ export default function FileTree() {
           {showNewMenu && (
             <div
               ref={newMenuRef}
-              className="absolute left-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
+              className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
             >
               <button onClick={handleNewScript} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
                 <FileText size={13} className="text-blue-500" /> 新建故事脚本
@@ -716,9 +728,16 @@ export default function FileTree() {
 
         {/* 文件树内容 */}
         {tree.length === 0 && !isCreatingFolder && (
-          <div className="px-4 py-8 text-center text-xs text-apple-text-tertiary">
-            <p>暂无文件</p>
-            <p className="mt-1">点击上方 + 新建文件或文件夹</p>
+          <div className="flex flex-col items-center justify-center pt-10 pb-8">
+            {/* 简单页面轮廓图标 — 匹配图一 */}
+            <svg width="40" height="48" viewBox="0 0 40 48" fill="none" className="mb-4">
+              <path d="M6 2h20l10 10v32a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="#B3B1B7" strokeWidth="1.5" fill="none" />
+              <path d="M26 2v10h10" stroke="#B3B1B7" strokeWidth="1.5" fill="none" />
+            </svg>
+            <p className="text-[13px] text-ds-on-surface font-semibold">暂无文件</p>
+            <p className="mt-2 text-[11px] text-ds-outline leading-[1.6] text-center">
+              点击上方 +<br />新建文件或文件夹
+            </p>
           </div>
         )}
         {tree.map((item, idx) => renderItem(item, 0, idx === tree.length - 1))}

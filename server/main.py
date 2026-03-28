@@ -9,9 +9,9 @@ import time
 import asyncio
 import random
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, List
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -432,6 +432,106 @@ async def save_generate_history(items: list[dict] = []):
     """保存（覆盖）生成页对话历史"""
     _write_json(GENERATE_HISTORY_FILE, items)
     return {"message": "已保存", "count": len(items)}
+
+
+# ===== 与前端 imageGeneration.ts 对齐的兼容路由（本地开发 / 无上游网关时） =====
+
+
+class NodesRunRequest(BaseModel):
+    type: str
+    prompt: str
+    model: str
+    name: Optional[str] = None
+    size: Optional[str] = None
+    length: Optional[int] = None
+    watermark: Optional[bool] = None
+    response_format: Optional[str] = None
+    reference_image_urls: Optional[List[str]] = None
+    video_reference_mode: Optional[str] = None
+
+
+@app.post("/user/auth")
+async def user_auth_compat(body: Optional[dict] = Body(default=None)):
+    """前端 authenticate() 使用"""
+    return {"ak": "dev_mock_ak", "authedModels": {}}
+
+
+@app.get("/model/list")
+async def model_list_compat(
+    ability: Optional[str] = None,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """前端 listModels()：返回与 ModelInfo 一致的结构"""
+    models = [
+        {
+            "id": "MaaS_flux",
+            "name": "MaaS_Flux",
+            "ability": "text2img",
+            "provider": "poc",
+            "description": "POC 图片模型",
+            "weight": 1,
+            "costRate": 1,
+        },
+        {
+            "id": "MaaS_Seedance1_5",
+            "name": "MaaS_Seedance1.5",
+            "ability": "text2video",
+            "provider": "poc",
+            "description": "Seedance 1.5（参考图最多 5 张由前端限制）",
+            "weight": 1,
+            "costRate": 1,
+        },
+        {
+            "id": "MaaS_GLM5",
+            "name": "MaaS_GLM5",
+            "ability": "chat_completion",
+            "provider": "poc",
+            "description": "POC 文本模型",
+            "weight": 1,
+            "costRate": 1,
+        },
+    ]
+    if ability:
+        models = [m for m in models if m.get("ability") == ability]
+    return {"models": models, "total": len(models)}
+
+
+@app.post("/nodes/run")
+async def nodes_run_compat(
+    req: NodesRunRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """前端 runNode()：接受 reference_image_urls / video_reference_mode 并返回 RunNodeResponse"""
+    await asyncio.sleep(random.uniform(0.4, 1.2))
+    if req.type == "text":
+        return {
+            "status": "success",
+            "outputs": {"text": random.choice(SAMPLE_TEXT_RESULTS)},
+            "error": None,
+        }
+    if req.type == "image":
+        return {
+            "status": "success",
+            "outputs": {"content_url": random.choice(PLACEHOLDER_IMAGES)},
+            "error": None,
+        }
+    if req.type == "video":
+        return {
+            "status": "success",
+            "outputs": {
+                "content_url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            },
+            "error": None,
+        }
+    if req.type == "audio":
+        return {
+            "status": "success",
+            "outputs": {
+                "content_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+            },
+            "error": None,
+        }
+    raise HTTPException(status_code=400, detail=f"不支持的 type: {req.type}")
 
 
 if __name__ == "__main__":
