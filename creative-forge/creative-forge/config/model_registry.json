@@ -1,0 +1,79 @@
+[
+  {
+    "id": "MaaS_Seedream_4.0",
+    "name": "MaaS_Seedream_4.0",
+    "ability": "text2img",
+    "provider": "volcengine",
+    "api_suffix": "/seedream/image/generations",
+    "executor_class_name": "SyncHttpExecutor",
+    "parameters": {
+      "response_format": "url",
+      "watermark": true
+    },
+    "description": "Seedream 4.0 (MaaS) - High quality image generation model",
+    "weight": 90,
+    "cost_rate": 1.0,
+    "enabled": true,
+    "created_at": "2026-03-10T00:00:00",
+    "updated_at": "2026-03-10T00:00:00",
+    "updated_by": "system"
+  },
+  {
+    "id": "MaaS_Seedance_1.0_pro",
+    "name": "MaaS_Seedance_1.0_pro",
+    "ability": "text2video",
+    "provider": "volcengine",
+    "api_suffix": "/seedance/contents/generations/tasks",
+    "executor_class_name": "AsyncPollingExecutor",
+    "parameters": {
+      "watermark": false
+    },
+    "description": "Seedance 1.0 Pro - Video generation model",
+    "weight": 80,
+    "cost_rate": 2.0,
+    "enabled": true,
+    "created_at": "2026-03-10T00:00:00",
+    "updated_at": "2026-03-10T00:00:00",
+    "updated_by": "system"
+  },
+  {
+    "id": "MaaS_Seedance_1.5_pro",
+    "name": "MaaS_Seedance_1.5_pro",
+    "ability": "text2video",
+    "provider": "volcengine",
+    "api_suffix": "/seedance/contents/generations/tasks",
+    "executor_class_name": "AsyncPollingExecutor",
+    "parameters": {
+      "watermark": false
+    },
+    "description": "Seedance 1.5 Pro (MaaS) - Latest video generation model",
+    "weight": 98,
+    "cost_rate": 2.5,
+    "enabled": true,
+    "created_at": "2026-03-10T00:00:00",
+    "updated_at": "2026-03-10T00:00:00",
+    "updated_by": "system"
+  },
+  {
+    "id": "GLM5",
+    "name": "GLM5",
+    "ability": "chat_completion",
+    "provider": "zhipu",
+    "api_suffix": "/chat/completions",
+    "executor_class_name": "ChatCompletionExecutor",
+    "parameters": {
+      "model_name": "MaaS_GLM_5_20260212",
+      "system_prompt": "你是一个专业的AI漫剧剧本创作助手。请根据用户的要求创作剧本内容，包括场景描述、对话、分镜等。输出格式清晰，便于后续制作。",
+      "temperature": 0.8,
+      "max_tokens": 4096,
+      "stream": false
+    },
+    "description": "GLM5 - 智谱大模型，用于剧本生成和文本创作",
+    "weight": 85,
+    "cost_rate": 1.0,
+    "enabled": true,
+    "created_at": "2026-03-13T00:00:00",
+    "updated_at": "2026-03-13T00:00:00",
+    "updated_by": "system"
+  }
+]

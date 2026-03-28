@@ -1,0 +1,7 @@
+{
+  "id": "temptestnode0",
+  "type": "video",
+  "prompt": "女孩抱着狐狸，女孩睁开眼，温柔地看向镜头，狐狸友善地抱着，镜头缓缓拉出，女孩的头发被风吹动  --ratio adaptive  --dur 5",
+  "model": "MaaS_Seedance_1.5_pro",
+  "response_format": "url"
+}

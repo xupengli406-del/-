@@ -1,0 +1,9 @@
+fastapi
+python-dotenv
+langchain
+langchain-openai
+langchain-mcp-adapters
+fastmcp
+swagger-ui-bundle
+uvicorn
+httpx
