@@ -172,7 +172,7 @@ export default function TabBar({ leaf }: TabBarProps) {
         {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0" />}
         <button
           onClick={(e) => handleClose(e, index)}
-          className={`flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-all ${
+          className={`flex-shrink-0 p-0.5 rounded-ds hover:bg-ds-surface-container-high transition-all ${
             isActiveTab ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-50 group-hover:hover:opacity-100'
           }`}
         >

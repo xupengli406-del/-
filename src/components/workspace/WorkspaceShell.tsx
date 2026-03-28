@@ -32,7 +32,7 @@ export default function WorkspaceShell() {
             {/* 侧边栏折叠时：悬浮展开按钮 */}
             <button
               onClick={() => setActiveSidePanel('files')}
-              className="absolute top-2 left-2 z-30 w-8 h-8 flex items-center justify-center rounded-ds bg-ds-surface-container-lowest text-ds-on-surface-variant hover:bg-ds-surface-container-high hover:text-ds-on-surface transition-colors shadow-float"
+              className="absolute top-2 left-2 z-30 w-8 h-8 flex items-center justify-center rounded-ds glass-nav text-ds-on-surface-variant hover:text-ds-on-surface transition-colors shadow-ambient"
               title="展开侧边栏"
             >
               <Menu size={16} strokeWidth={1.5} />

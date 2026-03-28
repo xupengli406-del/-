@@ -540,7 +540,7 @@ export default function FileTree() {
                   if (e.key === 'Escape') cancelRename()
                 }}
                 onBlur={confirmRename}
-                className="flex-1 text-xs px-1 py-0 border border-brand/40 rounded bg-white outline-none focus:border-brand min-w-0"
+                className="flex-1 text-xs px-1 py-0 input-atelier min-w-0"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
@@ -568,7 +568,7 @@ export default function FileTree() {
                     }}
                     onBlur={handleConfirmNewFolder}
                     placeholder="文件夹名称..."
-                    className="w-full text-xs px-2 py-1 border border-brand/40 rounded bg-white outline-none focus:border-brand"
+                    className="w-full text-xs px-2 py-1 input-atelier"
                     autoFocus
                   />
                 </div>
@@ -616,7 +616,7 @@ export default function FileTree() {
               if (e.key === 'Escape') cancelRename()
             }}
             onBlur={confirmRename}
-            className="flex-1 text-xs px-1 py-0 border border-brand/40 rounded bg-white outline-none focus:border-brand min-w-0"
+            className="flex-1 text-xs px-1 py-0 input-atelier min-w-0"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
@@ -639,23 +639,23 @@ export default function FileTree() {
   const renderNewFileMenu = (x: number, y: number, folderId: string | null, onClose: () => void) => (
     <div
       ref={newFileMenuRef}
-      className="fixed z-[100] bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
-      style={{ left: x, top: y }}
+      className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
+      style={{ left: x, top: y, border: '1px solid rgba(179,177,183,0.2)' }}
     >
-      <button onClick={() => { createFile('script', folderId); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-        <FileText size={13} className="text-blue-500" /> 新建故事脚本
+      <button onClick={() => { createFile('script', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+        <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
       </button>
-      <button onClick={() => { createFile('image', folderId); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-        <Image size={13} className="text-purple-500" /> 新建分镜图片
+      <button onClick={() => { createFile('image', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+        <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
       </button>
-      <button onClick={() => { createFile('video', folderId); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-        <Video size={13} className="text-rose-500" /> 新建分镜视频
+      <button onClick={() => { createFile('video', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+        <Video size={13} className="text-[#F97316]" /> 新建分镜视频
       </button>
-      <button onClick={() => { createFile('audio', folderId); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-        <Music size={13} className="text-amber-500" /> 新建音乐音效
+      <button onClick={() => { createFile('audio', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+        <Music size={13} className="text-[#F87171]" /> 新建音乐音效
       </button>
-      <button onClick={() => { createFile('canvas', folderId); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-        <LayoutDashboard size={13} className="text-teal-500" /> 新建自由画布
+      <button onClick={() => { createFile('canvas', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+        <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
       </button>
     </div>
   )
@@ -672,26 +672,27 @@ export default function FileTree() {
           {showNewMenu && (
             <div
               ref={newMenuRef}
-              className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
+              className="absolute right-0 top-full mt-1 z-50 bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
+              style={{ border: '1px solid rgba(179,177,183,0.2)' }}
             >
-              <button onClick={handleNewScript} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <FileText size={13} className="text-blue-500" /> 新建故事脚本
+              <button onClick={handleNewScript} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
               </button>
-              <button onClick={handleNewImage} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <Image size={13} className="text-purple-500" /> 新建分镜图片
+              <button onClick={handleNewImage} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
               </button>
-              <button onClick={handleNewVideo} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <Video size={13} className="text-rose-500" /> 新建分镜视频
+              <button onClick={handleNewVideo} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <Video size={13} className="text-[#F97316]" /> 新建分镜视频
               </button>
-              <button onClick={handleNewAudio} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <Music size={13} className="text-amber-500" /> 新建音乐音效
+              <button onClick={handleNewAudio} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <Music size={13} className="text-[#F87171]" /> 新建音乐音效
               </button>
-              <button onClick={handleNewCanvas} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <LayoutDashboard size={13} className="text-teal-500" /> 新建自由画布
+              <button onClick={handleNewCanvas} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
               </button>
-              <div className="h-px bg-apple-border-light my-1" />
-              <button onClick={() => { handleNewFolder(); setShowNewMenu(false) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-                <FolderPlus size={13} className="text-apple-text-tertiary" /> 新建文件夹
+              <div className="h-px bg-ds-surface-container-high my-1" />
+              <button onClick={() => { handleNewFolder(); setShowNewMenu(false) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+                <FolderPlus size={13} className="text-ds-on-surface-variant" /> 新建文件夹
               </button>
             </div>
           )}
@@ -720,7 +721,7 @@ export default function FileTree() {
               }}
               onBlur={handleConfirmNewFolder}
               placeholder="文件夹名称..."
-              className="w-full text-xs px-2 py-1 border border-brand/40 rounded bg-white outline-none focus:border-brand"
+              className="w-full text-xs px-2 py-1 input-atelier"
               autoFocus
             />
           </div>
@@ -830,27 +831,27 @@ export default function FileTree() {
       {blankContextMenuPos && (
         <div
           ref={blankContextMenuRef}
-          className="fixed z-[100] bg-white rounded-lg shadow-lg border border-apple-border-light py-1 min-w-[140px]"
-          style={{ left: blankContextMenuPos.x, top: blankContextMenuPos.y }}
+          className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
+          style={{ left: blankContextMenuPos.x, top: blankContextMenuPos.y, border: '1px solid rgba(179,177,183,0.2)' }}
         >
-          <button onClick={() => { createFile('script', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <FileText size={13} className="text-blue-500" /> 新建故事脚本
+          <button onClick={() => { createFile('script', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
           </button>
-          <button onClick={() => { createFile('image', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <Image size={13} className="text-purple-500" /> 新建分镜图片
+          <button onClick={() => { createFile('image', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
           </button>
-          <button onClick={() => { createFile('video', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <Video size={13} className="text-rose-500" /> 新建分镜视频
+          <button onClick={() => { createFile('video', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <Video size={13} className="text-[#F97316]" /> 新建分镜视频
           </button>
-          <button onClick={() => { createFile('audio', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <Music size={13} className="text-amber-500" /> 新建音乐音效
+          <button onClick={() => { createFile('audio', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <Music size={13} className="text-[#F87171]" /> 新建音乐音效
           </button>
-          <button onClick={() => { createFile('canvas', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <LayoutDashboard size={13} className="text-teal-500" /> 新建自由画布
+          <button onClick={() => { createFile('canvas', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
           </button>
-          <div className="h-px bg-apple-border-light my-1" />
-          <button onClick={() => { handleNewFolder(); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors">
-            <FolderPlus size={13} className="text-apple-text-tertiary" /> 新建文件夹
+          <div className="h-px bg-ds-surface-container-high my-1" />
+          <button onClick={() => { handleNewFolder(); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <FolderPlus size={13} className="text-ds-on-surface-variant" /> 新建文件夹
           </button>
         </div>
       )}

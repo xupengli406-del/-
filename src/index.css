@@ -161,13 +161,17 @@ body {
   background: #FFFFFF;
 }
 
+/* Glassmorphism header — persistent element per Digital Atelier §2 */
 .side-panel-header {
-  height: 44px;
+  height: 48px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
   flex-shrink: 0;
+  background: rgba(252, 248, 251, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 /* ===== FileTree 文件树组件 ===== */
@@ -429,3 +433,39 @@ body {
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.2s; }
 .stagger-5 { animation-delay: 0.25s; }
+
+/* ===== Digital Atelier §5: Input Fields ===== */
+/* Background: surface-container-low, Corner: roundness-md (8px) */
+/* Active: primary at 40% opacity + 2px soft glow */
+.input-atelier {
+  background: #F6F2F6;
+  border: 1px solid rgba(179, 177, 183, 0.2);
+  border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-atelier:focus {
+  outline: none;
+  border-color: rgba(29, 81, 223, 0.4);
+  box-shadow: 0 0 0 2px rgba(29, 81, 223, 0.08);
+}
+
+/* ===== Digital Atelier §2: Glass Navigation ===== */
+.glass-nav {
+  background: rgba(252, 248, 251, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Digital Atelier §5: Primary Button — Lithographic Gradient ===== */
+.btn-primary-atelier {
+  background: linear-gradient(135deg, #1D51DF, #4670FE);
+  color: #FAF8FF;
+  border: none;
+  border-radius: 9999px;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary-atelier:hover {
+  opacity: 0.92;
+}
