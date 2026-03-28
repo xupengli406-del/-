@@ -52,20 +52,28 @@ export const IMAGE_BATCH_OPTIONS = [
 export const VIDEO_LENGTH_OPTIONS = [
   { label: '5s', value: 5 },
   { label: '10s', value: 10 },
+  { label: '12s', value: 12 },
 ]
 
 // 视频比例选项
 export const VIDEO_RATIO_OPTIONS = [
+  { label: '21:9', value: '21:9' },
   { label: '16:9', value: '16:9' },
-  { label: '9:16', value: '9:16' },
-  { label: '1:1', value: '1:1' },
   { label: '4:3', value: '4:3' },
+  { label: '1:1', value: '1:1' },
   { label: '3:4', value: '3:4' },
+  { label: '9:16', value: '9:16' },
+]
+
+// 视频分辨率选项
+export const VIDEO_RESOLUTION_OPTIONS = [
+  { label: '720P', value: '720P' },
+  { label: '1080P ✦', value: '1080P' },
 ]
 
 // 视频参考模式选项
 export const VIDEO_REFERENCE_OPTIONS = [
   { label: '全能参考', value: 'all' },
-  { label: '仅首帧', value: 'first' },
-  { label: '首帧+尾帧', value: 'both' },
+  { label: '首尾帧', value: 'both' },
+  { label: '智能多帧', value: 'first' },
 ]
