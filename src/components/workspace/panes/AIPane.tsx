@@ -12,10 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  Type,
   Sparkles,
   MonitorPlay,
-  AtSign,
   FileText,
   User,
   MapPin,
@@ -841,9 +839,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
           )}
         </div>
 
-        <button className="flex items-center px-1.5 py-1 rounded-full text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors">
-          <Type size={10} />
-        </button>
       </>
     )
   }
@@ -981,9 +976,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
           )}
         </div>
 
-        <button className="flex items-center px-1.5 py-1 rounded-full text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary transition-colors">
-          <AtSign size={12} />
-        </button>
       </>
     )
   }

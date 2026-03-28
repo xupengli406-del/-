@@ -10,12 +10,13 @@ import AIPane from './panes/AIPane'
 
 interface DocumentRendererProps {
   docId: DocumentId
+  paneId?: string
 }
 
-export default function DocumentRenderer({ docId }: DocumentRendererProps) {
+export default function DocumentRenderer({ docId, paneId }: DocumentRendererProps) {
   switch (docId.type) {
     case 'welcome':
-      return <WelcomeTab />
+      return <WelcomeTab paneId={paneId} />
     case 'canvas':
       return <CanvasPane canvasFileId={docId.id} />
     case 'script':

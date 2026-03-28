@@ -42,7 +42,7 @@ function extractCanvasFileId(itemId: string): string | null {
 
 export default function FileTree() {
   const { buildFileTree, fileTreeExpandedFolders, toggleFolder, openDocument, openDocumentInPlace, splitPane, activePaneId, refreshTabLabels } = useWorkspaceStore()
-  const { customFolders, addCustomFolder, renameCustomFolder, removeCustomFolder, moveFileToFolder } = useCanvasStore()
+  const { customFolders, addCustomFolder, renameCustomFolder, removeCustomFolder, moveFileToFolder, moveFolderToFolder } = useCanvasStore()
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{
@@ -74,7 +74,7 @@ export default function FileTree() {
 
   // 拖拽状态
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
-  const dragItemRef = useRef<{ itemId: string; canvasFileId: string | null } | null>(null)
+  const dragItemRef = useRef<{ itemId: string; canvasFileId: string | null; isFolder: boolean } | null>(null)
 
   // "移动到文件夹"弹窗状态
   const [moveToFileIds, setMoveToFileIds] = useState<string[] | null>(null)
@@ -213,9 +213,9 @@ export default function FileTree() {
   }, [])
 
   // === 拖拽处理 ===
-  const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
-    const canvasFileId = extractCanvasFileId(itemId)
-    dragItemRef.current = { itemId, canvasFileId }
+  const handleDragStart = useCallback((e: React.DragEvent, itemId: string, isFolder = false) => {
+    const canvasFileId = isFolder ? null : extractCanvasFileId(itemId)
+    dragItemRef.current = { itemId, canvasFileId, isFolder }
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', itemId)
   }, [])
@@ -234,7 +234,19 @@ export default function FileTree() {
     e.preventDefault()
     setDragOverFolderId(null)
     const dragItem = dragItemRef.current
-    if (!dragItem?.canvasFileId) return
+    if (!dragItem) return
+
+    // 拖拽的是文件夹
+    if (dragItem.isFolder) {
+      if (dragItem.itemId !== targetFolderId) {
+        moveFolderToFolder(dragItem.itemId, targetFolderId)
+      }
+      dragItemRef.current = null
+      return
+    }
+
+    // 拖拽的是文件
+    if (!dragItem.canvasFileId) return
 
     // 如果拖拽的文件在多选集合中，移动所有选中的文件
     if (selectedIds.has(dragItem.itemId) && selectedIds.size > 1) {
@@ -246,7 +258,7 @@ export default function FileTree() {
       moveFileToFolder(dragItem.canvasFileId, targetFolderId)
     }
     dragItemRef.current = null
-  }, [moveFileToFolder, selectedIds])
+  }, [moveFileToFolder, moveFolderToFolder, selectedIds])
 
   // 拖拽到文件树空白区域 → 移出文件夹（移到根级）
   const handleTreeBgDragOver = useCallback((e: React.DragEvent) => {
@@ -262,7 +274,16 @@ export default function FileTree() {
     e.preventDefault()
     setDragOverFolderId(null)
     const dragItem = dragItemRef.current
-    if (!dragItem?.canvasFileId) return
+    if (!dragItem) return
+
+    // 拖拽的是文件夹 → 移到根级
+    if (dragItem.isFolder) {
+      moveFolderToFolder(dragItem.itemId, undefined)
+      dragItemRef.current = null
+      return
+    }
+
+    if (!dragItem.canvasFileId) return
 
     // 如果拖拽的文件在多选集合中，移动所有选中的文件到根级
     if (selectedIds.has(dragItem.itemId) && selectedIds.size > 1) {
@@ -274,7 +295,7 @@ export default function FileTree() {
       moveFileToFolder(dragItem.canvasFileId, undefined)
     }
     dragItemRef.current = null
-  }, [moveFileToFolder, selectedIds])
+  }, [moveFileToFolder, moveFolderToFolder, selectedIds])
 
   // === 新建文件（在指定 folderId 下创建，null 表示根级） ===
   const createFile = useCallback((projectType: 'script' | 'image' | 'video' | 'audio' | 'canvas', folderId: string | null) => {
@@ -421,19 +442,22 @@ export default function FileTree() {
 
   // 删除
   const handleDelete = useCallback((id: string) => {
+    const ws = useWorkspaceStore.getState()
     if (id.startsWith('folder_')) {
+      // 文件夹删除：先关闭该文件夹下所有文件的 tab
+      const cs = useCanvasStore.getState()
+      const folderId = id
+      cs.canvasFiles
+        .filter((f) => f.folderId === folderId)
+        .forEach((f) => ws.closeTabsByFileId(f.id))
       removeCustomFolder(id)
       return
     }
     const cs = useCanvasStore.getState()
-    if (id.startsWith('canvas_')) {
-      cs.removeCanvasFile(id.replace('canvas_', ''))
-    }
-    if (id.startsWith('ai_')) {
-      cs.removeCanvasFile(id.replace('ai_', ''))
-    }
-    if (id.startsWith('script_')) {
-      cs.removeCanvasFile(id.replace('script_', ''))
+    const fileId = id.replace(/^(canvas_|ai_|script_)/, '')
+    if (id.startsWith('canvas_') || id.startsWith('ai_') || id.startsWith('script_')) {
+      ws.closeTabsByFileId(fileId)
+      cs.removeCanvasFile(fileId)
     }
   }, [removeCustomFolder])
 
@@ -514,6 +538,8 @@ export default function FileTree() {
       return (
         <div key={item.id} className="relative">
           <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, item.id, true)}
             onClick={() => toggleFolder(item.id)}
             onContextMenu={(e) => handleFolderContextMenu(e, item.id)}
             onDragOver={(e) => handleDragOver(e, item.id)}

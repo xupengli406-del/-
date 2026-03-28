@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef, useEffect } from 'react'
-import { X, Plus, Columns, Rows, MoreHorizontal } from 'lucide-react'
+import { X, Plus, Columns, Rows } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { getDocumentIcon } from '../../store/documentHelpers'
 import type { PaneLeaf } from '../../store/workspaceTypes'
@@ -150,72 +150,41 @@ export default function TabBar({ leaf }: TabBarProps) {
     </div>
   )
 
-  // 渲染单个标签
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderTab = (label: string, isActiveTab: boolean, index: number, icon?: any, dirty?: boolean) => {
-    const Icon = icon
-    return (
-      <div
-        key={index}
-        onClick={() => handleTabClick(index)}
-        onMouseDown={(e) => handleMouseDown(e, index)}
-        onContextMenu={(e) => handleTabContextMenu(e, index)}
-        className={`group relative flex items-center gap-1.5 h-full px-3.5 text-[12px] cursor-pointer whitespace-nowrap select-none transition-colors ${
-          isActiveTab
-            ? 'bg-white text-ds-on-surface font-medium'
-            : 'text-ds-on-surface-variant hover:bg-ds-surface-container'
-        }`}
-        style={{ borderRight: '1px solid rgba(179,177,183,0.15)' }}
-      >
-        {Icon && <Icon size={13} className="flex-shrink-0 text-ds-on-surface-variant" />}
-        <span className="truncate max-w-[160px]">{label}</span>
-        {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0" />}
-        <button
-          onClick={(e) => handleClose(e, index)}
-          className={`flex-shrink-0 p-0.5 rounded-ds hover:bg-ds-surface-container-high transition-all ${
-            isActiveTab ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-50 group-hover:hover:opacity-100'
-          }`}
-        >
-          <X size={12} />
-        </button>
-      </div>
-    )
-  }
-
-  if (leaf.tabs.length === 0) {
-    return (
-      <div className="flex-shrink-0" onClick={() => setActivePaneId(leaf.id)}>
-        <div className="h-[2px] bg-gradient-to-r from-brand via-[#8B5CF6] to-transparent" />
-        <div className="flex items-stretch h-[36px] bg-ds-surface-container-low">
-          <div className="flex items-stretch flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 h-full px-3.5 bg-white text-ds-on-surface font-medium text-[12px]" style={{ borderRight: '1px solid rgba(179,177,183,0.15)' }}>
-              <span>新标签页</span>
-              <button className="flex-shrink-0 p-0.5 rounded-ds hover:bg-ds-surface-container-high transition-all opacity-40 hover:opacity-100">
-                <X size={12} />
-              </button>
-            </div>
-            <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] h-full hover:bg-ds-surface-container transition-colors">
-              <Plus size={14} className="text-ds-on-surface-variant" />
-            </button>
-          </div>
-          {renderSplitMenu()}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex-shrink-0" onClick={() => setActivePaneId(leaf.id)}>
-      <div className="h-[2px] bg-gradient-to-r from-brand via-[#8B5CF6] to-transparent" />
-      <div className="flex items-stretch h-[36px] bg-ds-surface-container-low">
-        <div className="flex items-stretch flex-1 min-w-0 overflow-x-auto scrollbar-none">
+      <div className="flex items-end h-10 px-2 bg-gray-50 border-b border-ds-outline-variant/20">
+        <div className="flex items-end flex-1 min-w-0 overflow-x-auto scrollbar-none h-full">
           {leaf.tabs.map((tab, i) => {
             const Icon = getDocumentIcon(tab.docId)
             const isActiveTab = i === leaf.activeTabIndex
-            return renderTab(tab.label, isActiveTab, i, Icon, tab.dirty)
+            return (
+              <div
+                key={i}
+                onClick={() => handleTabClick(i)}
+                onMouseDown={(e) => handleMouseDown(e, i)}
+                onContextMenu={(e) => handleTabContextMenu(e, i)}
+                className={`group relative flex items-center gap-1.5 h-8 px-4 mt-auto text-[11px] cursor-pointer whitespace-nowrap select-none transition-colors ${
+                  isActiveTab
+                    ? 'bg-white rounded-t-lg border border-ds-outline-variant/20 border-b-0 text-ds-on-surface font-medium'
+                    : 'text-ds-on-surface-variant hover:bg-ds-surface-container-high/60 rounded-t-lg mb-0'
+                }`}
+              >
+                {Icon && <Icon size={13} className="flex-shrink-0 text-ds-on-surface-variant" />}
+                <span className="truncate max-w-[160px]">{tab.label}</span>
+                {tab.dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0" />}
+                <button
+                  onClick={(e) => handleClose(e, i)}
+                  className={`flex-shrink-0 ml-1 p-0.5 rounded hover:bg-ds-surface-container-high transition-all ${
+                    isActiveTab ? 'opacity-60 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 group-hover:hover:opacity-100'
+                  }`}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            )
           })}
-          <button onClick={handleNewTab} className="flex items-center justify-center w-[36px] flex-shrink-0 hover:bg-ds-surface-container transition-colors">
-            <Plus size={14} className="text-ds-on-surface-variant" />
+          <button onClick={handleNewTab} className="flex items-center justify-center w-7 h-7 mb-0.5 ml-1 flex-shrink-0 rounded-md hover:bg-ds-surface-container-high transition-colors">
+            <Plus size={14} className="text-ds-on-surface-variant opacity-60" />
           </button>
         </div>
         {renderSplitMenu()}
