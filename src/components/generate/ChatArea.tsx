@@ -34,8 +34,10 @@ import {
   VIDEO_LENGTH_OPTIONS,
   VIDEO_RATIO_OPTIONS,
   VIDEO_REFERENCE_OPTIONS,
+  VIDEO_RESOLUTION_OPTIONS,
   type GenerateMode,
 } from './constants'
+import { useEditorOptions } from '../../hooks/useEditorOptions'
 
 // 附件类型：本地文件 或 拖拽引用
 interface Attachment {
@@ -56,44 +58,43 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
   const [showModeMenu, setShowModeMenu] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const { ak, availableModels, addGeneratedAsset, generateHistory, addGenerateHistoryItem, updateGenerateHistoryItem, removeGenerateHistoryItem } = useCanvasStore()
+  const { ak, addGeneratedAsset, generateHistory, addGenerateHistoryItem, updateGenerateHistoryItem, removeGenerateHistoryItem } = useCanvasStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const modeMenuRef = useRef<HTMLDivElement>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  // 图片模式参数
-  const imageModels = availableModels.filter((m) => m.ability === 'text2img')
-  const [selectedImageModel, setSelectedImageModel] = useState('')
-  const [imageRatio, setImageRatio] = useState('1:1')
-  const [imageResolution, setImageResolution] = useState('2K')
-  const [imageBatch, setImageBatch] = useState(3)
-
-  // 视频模式参数
-  const videoModels = availableModels.filter((m) => m.ability === 'text2video')
-  const [selectedVideoModel, setSelectedVideoModel] = useState('')
-  const [videoLength, setVideoLength] = useState(5)
-  const [videoRatio, setVideoRatio] = useState('16:9')
-  const [videoRefMode, setVideoRefMode] = useState('all')
+  // 编辑器参数（持久化）
+  const {
+    imageModels, videoModels, scriptModels,
+    selectedImageModel, setSelectedImageModel,
+    imageRatio, setImageRatio,
+    imageResolution, setImageResolution,
+    imageBatch, setImageBatch,
+    selectedVideoModel, setSelectedVideoModel,
+    videoLength, setVideoLength,
+    videoRatio, setVideoRatio,
+    videoRefMode, setVideoRefMode,
+    videoResolution, setVideoResolution,
+    videoCapabilities,
+    selectedScriptModel, setSelectedScriptModel,
+    audioVoice,
+    getActiveModel: getActiveModelByMode,
+    getModelDisplayName,
+    isVideoRefModeAvailable,
+  } = useEditorOptions()
 
   const maxRefAttachments = useMemo(() => {
     if (activeMode === 'image') {
-      const m = imageModels.find((x) => x.name === (selectedImageModel || imageModels[0]?.name))
+      const m = imageModels.find((x) => x.name === selectedImageModel)
       return getImageReferenceMax(m?.id ?? '', m?.name ?? '')
     }
     if (activeMode === 'video') {
-      const m = videoModels.find((x) => x.name === (selectedVideoModel || videoModels[0]?.name))
+      const m = videoModels.find((x) => x.name === selectedVideoModel)
       return getVideoReferenceMax(m?.id ?? '', m?.name ?? '', videoRefMode as VideoReferenceMode)
     }
     return 0
   }, [activeMode, imageModels, videoModels, selectedImageModel, selectedVideoModel, videoRefMode])
-
-  // 剧本模式参数
-  const scriptModels = availableModels.filter((m) => m.ability === 'chat_completion')
-  const [selectedScriptModel, setSelectedScriptModel] = useState('')
-
-  // 音频模式参数
-  const [audioVoice] = useState('克隆声音')
 
   // 附件（参考文件）
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -130,30 +131,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
   }, [prompt])
 
   // 获取当前模式的有效模型名
-  const getActiveModel = (): string => {
-    if (activeMode === 'image') {
-      return selectedImageModel || imageModels[0]?.name || ''
-    }
-    if (activeMode === 'video') {
-      return selectedVideoModel || videoModels[0]?.name || ''
-    }
-    if (activeMode === 'script') {
-      return selectedScriptModel || scriptModels[0]?.name || ''
-    }
-    return ''
-  }
-
-  // 获取当前模型显示名
-  const getModelDisplayName = (): string => {
-    const model = getActiveModel()
-    if (!model) {
-      if (activeMode === 'image') return '图片 5.0 Lite'
-      if (activeMode === 'video') return 'Seedance 2.0 Fast'
-      if (activeMode === 'script') return 'GLM5'
-      return ''
-    }
-    return model.replace('MaaS_', '')
-  }
+  const getActiveModel = (): string => getActiveModelByMode(activeMode)
 
   const handleSend = async () => {
     if (!prompt.trim() || isSending) return
@@ -515,7 +493,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
 
   // 图片模式参数按钮
   const renderImageParams = () => {
-    const modelName = getModelDisplayName()
+    const modelName = getModelDisplayName(activeMode)
     return (
       <>
         {/* 模型选择 */}
@@ -541,7 +519,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                     key={m.id}
                     onClick={() => { setSelectedImageModel(m.name); setActivePopup(null) }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                      (selectedImageModel || imageModels[0]?.name) === m.name
+                      selectedImageModel === m.name
                         ? 'text-brand bg-brand-50'
                         : 'text-apple-text hover:bg-apple-bg-secondary'
                     }`}
@@ -553,7 +531,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                       <div className="text-sm font-medium">{m.name.replace('MaaS_', '')}</div>
                       <div className="text-[10px] text-apple-text-tertiary">{m.description || '指令响应精准'}</div>
                     </div>
-                    {(selectedImageModel || imageModels[0]?.name) === m.name && <Check size={14} className="ml-auto text-brand" />}
+                    {selectedImageModel === m.name && <Check size={14} className="ml-auto text-brand" />}
                   </button>
                 )) : (
                   <div className="px-3 py-4 text-xs text-apple-text-tertiary text-center">无可用模型</div>
@@ -631,7 +609,9 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
 
   // 视频模式参数按钮
   const renderVideoParams = () => {
-    const modelName = selectedVideoModel ? selectedVideoModel.replace('MaaS_', '') : 'Seedance 2.0 Fast'
+    const modelName = getModelDisplayName('video')
+    const refLabel = VIDEO_REFERENCE_OPTIONS.find((o) => o.value === videoRefMode)?.label || '首尾帧'
+    const ratioLabel = videoResolution ? `${videoRatio}  ${videoResolution}` : videoRatio
     return (
       <>
         {/* 模型选择 */}
@@ -655,7 +635,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                     key={m.id}
                     onClick={() => { setSelectedVideoModel(m.name); setActivePopup(null) }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                      (selectedVideoModel || videoModels[0]?.name) === m.name
+                      selectedVideoModel === m.name
                         ? 'text-brand bg-brand-50'
                         : 'text-apple-text hover:bg-apple-bg-secondary'
                     }`}
@@ -667,7 +647,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                       <div className="text-sm font-medium">{m.name.replace('MaaS_', '')}</div>
                       <div className="text-[10px] text-apple-text-tertiary">{m.description || ''}</div>
                     </div>
-                    {(selectedVideoModel || videoModels[0]?.name) === m.name && <Check size={14} className="ml-auto text-brand" />}
+                    {selectedVideoModel === m.name && <Check size={14} className="ml-auto text-brand" />}
                   </button>
                 )) : (
                   <div className="px-3 py-4 text-xs text-apple-text-tertiary text-center">无可用模型</div>
@@ -677,62 +657,109 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
           )}
         </div>
 
-        {/* 参考模式 */}
+        {/* 生成方式（全能参考/首尾帧/智能多帧） */}
         <div className="relative">
           <button
             onClick={() => togglePopup('videoRef')}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors"
           >
             <Image size={12} />
-            {VIDEO_REFERENCE_OPTIONS.find((o) => o.value === videoRefMode)?.label || '全能参考'}
+            {refLabel}
             <ChevronDown size={10} />
           </button>
           {activePopup === 'videoRef' && (
             <>
               <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
-              <div className="absolute bottom-full left-0 mb-2 min-w-[120px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
-                {VIDEO_REFERENCE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setVideoRefMode(opt.value); setActivePopup(null) }}
-                    className={`w-full px-3 py-2 text-xs text-left flex items-center justify-between transition-colors ${
-                      opt.value === videoRefMode ? 'text-brand bg-brand-50' : 'text-apple-text hover:bg-apple-bg-secondary'
-                    }`}
-                  >
-                    {opt.label}
-                    {opt.value === videoRefMode && <Check size={10} />}
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 mb-2 min-w-[140px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
+                <div className="px-3 py-1.5 text-[10px] text-apple-text-tertiary">选择生成方式</div>
+                {VIDEO_REFERENCE_OPTIONS.map((opt) => {
+                  const available = isVideoRefModeAvailable(opt.value as 'all' | 'first' | 'both')
+                  const active = opt.value === videoRefMode
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => { if (available) { setVideoRefMode(opt.value); setActivePopup(null) } }}
+                      disabled={!available}
+                      className={`w-full px-3 py-2 text-xs text-left flex items-center justify-between transition-colors ${
+                        !available
+                          ? 'text-apple-text-tertiary/40 cursor-not-allowed'
+                          : active
+                            ? 'text-brand bg-brand-50'
+                            : 'text-apple-text hover:bg-apple-bg-secondary'
+                      }`}
+                    >
+                      {opt.label}
+                      {active && <Check size={10} />}
+                    </button>
+                  )
+                })}
               </div>
             </>
           )}
         </div>
 
-        {/* 比例 */}
+        {/* 比例 + 分辨率（合并弹窗） */}
         <div className="relative">
           <button
-            onClick={() => togglePopup('videoRatio')}
+            onClick={() => togglePopup('videoRatioRes')}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors"
           >
             <MonitorPlay size={12} />
-            {videoRatio}
+            {ratioLabel}
           </button>
-          {activePopup === 'videoRatio' && (
+          {activePopup === 'videoRatioRes' && (
             <>
               <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
-              <div className="absolute bottom-full left-0 mb-2 min-w-[100px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
-                {VIDEO_RATIO_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setVideoRatio(opt.value); setActivePopup(null) }}
-                    className={`w-full px-3 py-2 text-xs text-left flex items-center justify-between transition-colors ${
-                      opt.value === videoRatio ? 'text-brand bg-brand-50' : 'text-apple-text hover:bg-apple-bg-secondary'
-                    }`}
-                  >
-                    {opt.label}
-                    {opt.value === videoRatio && <Check size={10} />}
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 mb-2 w-72 bg-white rounded-2xl border border-apple-border-light shadow-xl p-3 z-[70]">
+                <div className="text-[10px] text-apple-text-tertiary mb-2">选择比例</div>
+                <div className="grid grid-cols-6 gap-1.5 mb-3">
+                  {VIDEO_RATIO_OPTIONS.map((opt) => {
+                    const active = opt.value === videoRatio
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setVideoRatio(opt.value)}
+                        className={`flex flex-col items-center gap-0.5 py-2 rounded-lg text-[10px] transition-colors ${
+                          active
+                            ? 'bg-brand-50 text-brand border border-brand/30'
+                            : 'hover:bg-apple-bg-secondary text-apple-text-secondary border border-transparent'
+                        }`}
+                      >
+                        <MonitorPlay size={16} className={active ? 'text-brand' : 'text-apple-text-tertiary'} />
+                        <span>{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {videoCapabilities.resolutions.length > 0 && (
+                  <>
+                    <div className="text-[10px] text-apple-text-tertiary mb-2">选择分辨率</div>
+                    <div className="flex gap-2">
+                      {VIDEO_RESOLUTION_OPTIONS.map((opt) => {
+                        const active = opt.value === videoResolution
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => setVideoResolution(opt.value)}
+                            className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors ${
+                              active
+                                ? 'bg-brand-50 text-brand border border-brand/30'
+                                : 'hover:bg-apple-bg-secondary text-apple-text-secondary border border-apple-border-light/60'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+                <button
+                  onClick={() => setActivePopup(null)}
+                  className="w-full mt-3 py-2 text-xs font-medium text-brand hover:bg-brand-50 rounded-xl transition-colors"
+                >
+                  确定
+                </button>
               </div>
             </>
           )}
@@ -750,19 +777,25 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
           {activePopup === 'videoLen' && (
             <>
               <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
-              <div className="absolute bottom-full left-0 mb-2 min-w-[80px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
-                {VIDEO_LENGTH_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setVideoLength(opt.value); setActivePopup(null) }}
-                    className={`w-full px-3 py-2 text-xs text-left flex items-center justify-between transition-colors ${
-                      opt.value === videoLength ? 'text-brand bg-brand-50' : 'text-apple-text hover:bg-apple-bg-secondary'
-                    }`}
-                  >
-                    {opt.label}
-                    {opt.value === videoLength && <Check size={10} />}
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 mb-2 min-w-[120px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
+                <div className="px-3 py-1.5 text-[10px] text-apple-text-tertiary">选择视频生成时长</div>
+                {VIDEO_LENGTH_OPTIONS.map((opt) => {
+                  const active = opt.value === videoLength
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setVideoLength(opt.value); setActivePopup(null) }}
+                      className={`w-full px-3 py-2 text-xs text-left flex items-center justify-between transition-colors ${
+                        active
+                          ? 'text-brand bg-brand-50'
+                          : 'text-apple-text hover:bg-apple-bg-secondary'
+                      }`}
+                    >
+                      {opt.label}
+                      {active && <Check size={10} />}
+                    </button>
+                  )
+                })}
               </div>
             </>
           )}
@@ -791,7 +824,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
           <div className="w-4 h-4 rounded bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
             <span className="text-[8px] text-white font-bold">G</span>
           </div>
-          {getModelDisplayName()}
+          {getModelDisplayName(activeMode)}
         </button>
         {activePopup === 'scriptModel' && (
           <>
@@ -803,7 +836,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                   key={m.id}
                   onClick={() => { setSelectedScriptModel(m.name); setActivePopup(null) }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                    (selectedScriptModel || scriptModels[0]?.name) === m.name
+                    selectedScriptModel === m.name
                       ? 'text-brand bg-brand-50'
                       : 'text-apple-text hover:bg-apple-bg-secondary'
                   }`}
@@ -815,7 +848,7 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
                     <div className="text-sm font-medium">{m.name}</div>
                     <div className="text-[10px] text-apple-text-tertiary">{m.description || '智谱大模型'}</div>
                   </div>
-                  {(selectedScriptModel || scriptModels[0]?.name) === m.name && <Check size={14} className="ml-auto text-brand" />}
+                  {selectedScriptModel === m.name && <Check size={14} className="ml-auto text-brand" />}
                 </button>
               )) : (
                 <div className="px-3 py-4 text-xs text-apple-text-tertiary text-center">无可用模型</div>
@@ -1020,8 +1053,66 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
           >
             {/* 上方：附件 + 文本输入区 */}
             <div className="px-4 pt-3 pb-2">
-              {/* 附件展示区 */}
-              {attachments.length > 0 && (
+              {/* 首尾帧参考图卡片（视频 both 模式） */}
+              {activeMode === 'video' && videoRefMode === 'both' && (
+                <div className="flex items-center gap-3 mb-3">
+                  {/* 首帧 */}
+                  <label className="relative group/frame cursor-pointer">
+                    {attachments[0]?.previewUrl ? (
+                      <div className="w-20 h-24 rounded-xl overflow-hidden border border-apple-border-light">
+                        <img src={attachments[0].previewUrl} alt="" className="w-full h-full object-cover" />
+                        <button
+                          onClick={(e) => { e.preventDefault(); removeAttachment(0) }}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover/frame:opacity-100 transition-opacity"
+                        >
+                          <X size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-24 rounded-xl border-2 border-dashed border-apple-border flex flex-col items-center justify-center hover:border-brand/40 hover:bg-brand-50/20 transition-colors">
+                        <Plus size={18} className="text-apple-text-tertiary" />
+                        <span className="text-[9px] text-apple-text-tertiary mt-0.5">首帧</span>
+                      </div>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const att: Attachment = { type: 'file', file, previewUrl: URL.createObjectURL(file), name: file.name }
+                      setAttachments((prev) => { const next = [...prev]; next[0] = att; return next })
+                      e.target.value = ''
+                    }} />
+                  </label>
+                  <span className="text-apple-text-tertiary text-sm">⇄</span>
+                  {/* 尾帧 */}
+                  <label className="relative group/frame cursor-pointer">
+                    {attachments[1]?.previewUrl ? (
+                      <div className="w-20 h-24 rounded-xl overflow-hidden border border-apple-border-light">
+                        <img src={attachments[1].previewUrl} alt="" className="w-full h-full object-cover" />
+                        <button
+                          onClick={(e) => { e.preventDefault(); removeAttachment(1) }}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover/frame:opacity-100 transition-opacity"
+                        >
+                          <X size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-24 rounded-xl border-2 border-dashed border-apple-border flex flex-col items-center justify-center hover:border-brand/40 hover:bg-brand-50/20 transition-colors">
+                        <Plus size={18} className="text-apple-text-tertiary" />
+                        <span className="text-[9px] text-apple-text-tertiary mt-0.5">尾帧</span>
+                      </div>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const att: Attachment = { type: 'file', file, previewUrl: URL.createObjectURL(file), name: file.name }
+                      setAttachments((prev) => { const next = [...prev]; if (next.length < 1) next.push({ type: 'file', name: '' }); next[1] = att; return next })
+                      e.target.value = ''
+                    }} />
+                  </label>
+                </div>
+              )}
+              {/* 通用附件展示区（非 video-both 模式） */}
+              {!(activeMode === 'video' && videoRefMode === 'both') && attachments.length > 0 && (
                 <div className="flex items-start gap-2 mb-3 flex-wrap">
                   {attachments.map((att, index) => (
                     <div
@@ -1067,8 +1158,8 @@ export default function ChatArea({ selectedItemId, onSelectItem }: ChatAreaProps
 
               {/* 输入行：加号 + textarea */}
               <div className="flex items-start gap-2">
-                {/* 左侧 + 号上传按钮（无附件时显示） */}
-                {attachments.length === 0 && (
+                {/* 左侧 + 号上传按钮（无附件时显示，video-both 模式不显示） */}
+                {!(activeMode === 'video' && videoRefMode === 'both') && attachments.length === 0 && (
                   <label className="flex-shrink-0 w-12 h-12 rounded-xl bg-apple-bg-secondary border border-apple-border-light/50 flex flex-col items-center justify-center cursor-pointer hover:bg-apple-bg-tertiary transition-colors mt-0.5">
                     <Plus size={18} className="text-apple-text-tertiary" />
                     <input
