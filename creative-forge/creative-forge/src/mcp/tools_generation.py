@@ -1,8 +1,11 @@
 """MCP 工具: AI 内容生成（图片、视频、文本）"""
 
 import json
+import logging
 from fastmcp import FastMCP
 from src.mcp import forge_client
+
+logger = logging.getLogger(__name__)
 
 
 def register(mcp: FastMCP) -> None:
@@ -25,7 +28,6 @@ def register(mcp: FastMCP) -> None:
 
         Returns:
             JSON with status and the generated image URL.
-            Example: {"status": "success", "image_url": "https://..."}
         """
         result = await forge_client.run_node(
             node_type="image",
@@ -36,10 +38,21 @@ def register(mcp: FastMCP) -> None:
 
         if result.get("status") == "success":
             outputs = result.get("outputs", {})
+            image_url = outputs.get("content_url", "")
+
+            project = await forge_client.create_project_for_media(
+                media_type="image",
+                prompt=prompt,
+                result_url=image_url,
+                model=model,
+            )
+
             return json.dumps({
                 "status": "success",
-                "image_url": outputs.get("content_url", ""),
+                "image_url": image_url,
                 "size": outputs.get("size", ""),
+                "project_id": project["project_id"],
+                "project_name": project["project_name"],
             }, ensure_ascii=False)
         else:
             return json.dumps({
@@ -68,7 +81,6 @@ def register(mcp: FastMCP) -> None:
 
         Returns:
             JSON with status and the generated video URL.
-            Example: {"status": "success", "video_url": "https://..."}
         """
         result = await forge_client.run_node(
             node_type="video",
@@ -79,9 +91,20 @@ def register(mcp: FastMCP) -> None:
 
         if result.get("status") == "success":
             outputs = result.get("outputs", {})
+            video_url = outputs.get("content_url", "")
+
+            project = await forge_client.create_project_for_media(
+                media_type="video",
+                prompt=prompt,
+                result_url=video_url,
+                model=model,
+            )
+
             return json.dumps({
                 "status": "success",
-                "video_url": outputs.get("content_url", ""),
+                "video_url": video_url,
+                "project_id": project["project_id"],
+                "project_name": project["project_name"],
             }, ensure_ascii=False)
         else:
             return json.dumps({
