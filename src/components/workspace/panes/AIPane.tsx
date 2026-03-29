@@ -1178,23 +1178,23 @@ export default function AIPane({ fileId }: AIPaneProps) {
       </div>
 
       {isDedicatedFileTab && fileId && (
-        <div className="flex-shrink-0 px-3 py-2.5 border-b border-apple-border-light bg-apple-bg-secondary/40">
-          <p className="text-[10px] font-medium text-apple-text-secondary mb-2">
+        <div className="flex flex-col min-h-0 overflow-hidden max-h-[40%] px-3 py-2.5 border-b border-apple-border-light bg-apple-bg-secondary/40">
+          <p className="flex-shrink-0 text-[10px] font-medium text-apple-text-secondary mb-2">
             当前选用版本 · 文件树引用与此缩略图均指向该版本
           </p>
           {selectedMediaVersion ? (
-            <div className="rounded-xl overflow-hidden border border-apple-border-light bg-white max-h-[min(40vh,280px)] flex items-center justify-center">
+            <div className="flex-1 min-h-0 rounded-xl overflow-hidden border border-apple-border-light bg-white flex items-center justify-center">
               {boundFile?.projectType === 'image' ? (
-                <img src={selectedMediaVersion.url} alt="" className="max-w-full max-h-[min(40vh,280px)] object-contain" />
+                <img src={selectedMediaVersion.url} alt="" className="max-w-full max-h-full object-contain" />
               ) : (
-                <video src={selectedMediaVersion.url} controls className="max-w-full max-h-[min(40vh,280px)]" />
+                <video src={selectedMediaVersion.url} controls className="max-w-full max-h-full" />
               )}
             </div>
           ) : (
             <p className="text-xs text-apple-text-tertiary py-4 text-center">尚未生成，在下方输入描述开始</p>
           )}
           {boundFile?.mediaState && boundFile.mediaState.versions.length > 0 && (
-            <div className="mt-2">
+            <div className="flex-shrink-0 mt-2">
               <p className="text-[10px] text-apple-text-tertiary mb-1.5">历史版本（点击切换当前选用）</p>
               <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {boundFile.mediaState.versions.map((v) => {

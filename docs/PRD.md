@@ -1,7 +1,7 @@
 # ComicStudio AI - 产品需求文档 (PRD)
 
 > **版本**: v0.1.0 (POC)
-> **更新日期**: 2026-03-28
+> **更新日期**: 2026-03-29
 > **状态**: 当前已实现功能梳理
 > **面向对象**: 前端、后端、设计、测试全团队
 
@@ -24,10 +24,11 @@
    - 4.9 [素材库](#49-素材库)
    - 4.10 [持久化与数据同步](#410-持久化与数据同步)
 5. [后端 API 规格](#5-后端-api-规格)
-6. [AI 模型集成](#6-ai-模型集成)
-7. [UI/UX 设计规范](#7-uiux-设计规范)
-8. [非功能性需求](#8-非功能性需求)
-9. [当前状态与待完善项](#9-当前状态与待完善项)
+6. [MCP Server](#6-mcp-server)
+7. [AI 模型集成](#7-ai-模型集成)
+8. [UI/UX 设计规范](#8-uiux-设计规范)
+9. [非功能性需求](#9-非功能性需求)
+10. [当前状态与待完善项](#10-当前状态与待完善项)
 
 ---
 
@@ -61,6 +62,7 @@
 | 后端框架 | FastAPI (Python) |
 | AI 模型 | Seedream 4.0 (图片)、Seedance 1.0/1.5 Pro (视频)、GLM5 (文本) |
 | 持久化 | 后端 JSON 文件存储 + 前端 localStorage 双写 |
+| MCP 协议 | FastMCP 3.x (Streamable HTTP) — 对接 LobsterAI 等外部 AI Agent |
 
 ---
 
@@ -147,6 +149,8 @@ src/
 ```
 creative-forge/creative-forge/
 ├── main.py                          # FastAPI 入口
+├── mcp_server.py                    # MCP Server 入口（FastMCP，端口 3001）
+├── install_mcp_to_lobsterai.py      # 一键注册 MCP 到 LobsterAI 桌面应用
 ├── config/
 │   ├── model_registry.json          # 模型注册表（4个模型）
 │   └── user_auth.json               # 用户认证配置
@@ -167,6 +171,13 @@ creative-forge/creative-forge/
     │   ├── sync_http_executor.py    # 同步HTTP（Seedream图片）
     │   ├── async_polling_executor.py# 异步轮询（Seedance视频）
     │   └── chat_completion_executor.py # 聊天补全（GLM5文本）
+    ├── mcp/                         # MCP 工具层（10个工具，4个模块）
+    │   ├── __init__.py
+    │   ├── forge_client.py          # HTTP 客户端（认证 + API 封装）
+    │   ├── tools_models.py          # 模型查询工具
+    │   ├── tools_generation.py      # AI 生成工具（图片/视频/文本）
+    │   ├── tools_assets.py          # 素材管理工具
+    │   └── tools_canvas.py          # 画布文件管理工具
     ├── repositories/
     │   └── model_config_repository.py
     ├── entities/
@@ -361,6 +372,8 @@ PaneLeaf {
 | 垂直分屏 | TabBar 下拉菜单 "向下拆分" | 当前 Pane 下方新建 Pane，移动当前 Tab |
 | 关闭 Tab | 点击 Tab 上的 × | 移除 Tab，若 Pane 变空则自动折叠 |
 | 拖拽调整 | 拖动分隔条 | 调整相邻 Pane 尺寸比例 |
+
+**分屏自适应规则**：面板内的内容区域（如 AI 生成面板的图片预览区）采用弹性布局自适应面板大小，预览区最大高度不超过面板的 40%，确保多级分屏时聊天历史和输入框仍可正常使用。
 
 #### 4.1.4 Tab 标签页
 
@@ -978,9 +991,131 @@ interface StoryboardVersion {
 
 ---
 
-## 6. AI 模型集成
+## 6. MCP Server
 
-### 6.1 模型注册表
+### 6.1 概述
+
+Creative Forge 通过 **MCP (Model Context Protocol)** 将 AI 漫剧创作能力暴露给外部 AI Agent（如有道龙虾 LobsterAI），使用户可以在飞书等 IM 中通过自然语言指令调用图片/视频/文本生成。
+
+**关键特性**：
+- 基于 FastMCP 3.x 框架，使用 Streamable HTTP transport
+- 共暴露 **10 个 MCP 工具**，分 4 个模块
+- 生成图片/视频后自动在 web 端创建对应项目文件，结果在文件树中可见
+- 提供一键注册脚本，写入 LobsterAI 的 SQLite 数据库和 mcp.config.json
+
+### 6.2 架构
+
+```
+外部 AI Agent (LobsterAI)
+    │
+    │  MCP 协议 (Streamable HTTP)
+    ▼
+MCP Server (FastMCP, 端口 3001)
+    │
+    │  HTTP (httpx)
+    ▼
+Creative Forge 后端 (FastAPI, 端口 8000)
+    │
+    ▼
+AI 模型 API (火山引擎 / 智谱)
+```
+
+### 6.3 MCP 工具列表
+
+#### 模型查询 (tools_models)
+
+| 工具 | 参数 | 说明 |
+|------|------|------|
+| `list_models` | `ability`（可选：text2img / text2video / chat_completion） | 查询可用 AI 模型列表 |
+
+#### AI 生成 (tools_generation)
+
+| 工具 | 参数 | 说明 |
+|------|------|------|
+| `generate_image` | `prompt`, `model`(默认 Seedream 4.0), `size`(1K/2K/4K) | 文生图，返回图片 URL + 自动创建 image 项目 |
+| `generate_video` | `prompt`, `model`(默认 Seedance 1.5 Pro), `duration`(5/10/12秒) | 文生视频（1-5分钟异步），返回视频 URL + 自动创建 video 项目 |
+| `generate_text` | `prompt`, `model`(默认 GLM5), `system_prompt`(可选) | 文本生成（剧本/对白/场景描述） |
+
+#### 素材管理 (tools_assets)
+
+| 工具 | 参数 | 说明 |
+|------|------|------|
+| `list_assets` | （无） | 列出所有已保存素材 |
+| `create_asset` | `name`, `url`, `type`, `source`, `text_content` | 保存素材到库 |
+| `delete_asset` | `asset_id` | 删除素材 |
+| `upload_image` | `image_url` 或 `image_base64`, `filename` | 上传图片到服务器 |
+
+#### 画布文件管理 (tools_canvas)
+
+| 工具 | 参数 | 说明 |
+|------|------|------|
+| `list_canvas_files` | （无） | 列出所有画布项目文件 |
+| `manage_canvas_file` | `action`(create/update/delete), `file_id`, `name`, `snapshot`, `project_type` | 创建/更新/删除画布项目 |
+
+### 6.4 自动创建项目
+
+通过 MCP 生成图片或视频后，系统自动调用 `create_project_for_media()` 创建对应的 CanvasFile 项目：
+- `projectType` 设为 `image` 或 `video`
+- `mediaState.versions` 记录生成结果 URL、prompt、模型
+- `aiSession.messages` 记录对话历史
+- 项目在 web 端文件树中可见（需刷新页面）
+
+### 6.5 LobsterAI 集成
+
+#### 注册方式
+
+运行 `install_mcp_to_lobsterai.py` 一键注册：
+
+```bash
+# 安装
+python install_mcp_to_lobsterai.py
+
+# 卸载
+python install_mcp_to_lobsterai.py --uninstall
+
+# 自定义地址
+python install_mcp_to_lobsterai.py --url http://localhost:3001/mcp
+```
+
+脚本同时写入两个位置（LobsterAI 两条 MCP 发现路径）：
+1. **SQLite** (`%APPDATA%/LobsterAI/lobsterai.sqlite` → `mcp_servers` 表)
+2. **JSON 配置** (`%APPDATA%/LobsterAI/SKILLs/mcp.config.json`)
+
+#### 启动流程
+
+```bash
+# 1. 启动 Creative Forge 后端
+cd 网页端/creative-forge/creative-forge
+python main.py                  # 端口 8000
+
+# 2. 启动 MCP Server
+python mcp_server.py            # 端口 3001
+
+# 3. 启动/重启 LobsterAI 桌面应用
+```
+
+### 6.6 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `CREATIVE_FORGE_BASE_URL` | `http://localhost:8000` | 后端地址 |
+| `CREATIVE_FORGE_USER_ID` | `testuser1` | 自动认证用户 ID |
+| `MCP_SERVER_PORT` | `3001` | MCP Server 端口 |
+
+### 6.7 依赖
+
+| 依赖 | 用途 |
+|------|------|
+| `fastmcp` >= 3.1 | MCP 协议框架 |
+| `httpx` | 异步 HTTP 客户端 |
+| `python-dotenv` | 环境变量加载 |
+| `Pillow` | 图片压缩（可选，用于 compress_image） |
+
+---
+
+## 7. AI 模型集成
+
+### 7.1 模型注册表
 
 当前注册 4 个模型：
 
@@ -991,7 +1126,7 @@ interface StoryboardVersion {
 | MaaS_Seedance_1.5_pro | text2video | AsyncPollingExecutor | 火山引擎 |
 | GLM5 | chat_completion | ChatCompletionExecutor | 智谱 |
 
-### 6.2 执行器类型
+### 7.2 执行器类型
 
 #### SyncHttpExecutor（同步 HTTP）
 
@@ -1013,7 +1148,7 @@ interface StoryboardVersion {
 - 模式：流式 SSE 响应
 - 支持上下文对话
 
-### 6.3 执行器工厂
+### 7.3 执行器工厂
 
 通过 `get_executor(model_name)` 自动匹配执行器：
 - 根据 `model_registry.json` 中模型的 `executor_class_name` 字段
@@ -1024,9 +1159,9 @@ interface StoryboardVersion {
 
 ---
 
-## 7. UI/UX 设计规范
+## 8. UI/UX 设计规范
 
-### 7.1 整体布局
+### 8.1 整体布局
 
 ```
 ┌───────────────────────────────────────────────┐
@@ -1053,7 +1188,7 @@ interface StoryboardVersion {
 - **主面板**：PaneContainer 递归渲染 PaneNode 树
 - 无传统顶栏，侧边栏可通过 Ribbon 按钮折叠/展开
 
-### 7.2 色彩系统
+### 8.2 色彩系统
 
 通过 **Tailwind Config** `theme.extend.colors` 定义，以 CSS class 形式使用（如 `text-ds-on-surface`、`bg-apple-bg-secondary`），非原生 CSS 变量。
 
@@ -1104,7 +1239,7 @@ interface StoryboardVersion {
 | `shadow-ambient` | 品牌色微光阴影 |
 | `shadow-capsule` | 胶囊卡片阴影 |
 
-### 7.3 组件规范
+### 8.3 组件规范
 
 | 组件 | 样式特征 |
 |------|---------|
@@ -1120,7 +1255,7 @@ interface StoryboardVersion {
 | 输入框 | `input-atelier` 统一样式 |
 | 卡片 | `card-atelier` 悬浮动效 |
 
-### 7.4 自定义 CSS 类（index.css）
+### 8.4 自定义 CSS 类（index.css）
 
 | 类名前缀 | 用途 |
 |---------|------|
@@ -1133,7 +1268,7 @@ interface StoryboardVersion {
 | `.fade-in-up` / `.stagger-*` | 渐入上浮动画 + 交错延时 |
 | `.canvas-editor-mode` | 画布深色主题覆盖 |
 
-### 7.4 图标库
+### 8.5 图标库
 
 使用 **lucide-react** 图标库。
 
@@ -1149,9 +1284,9 @@ interface StoryboardVersion {
 
 ---
 
-## 8. 非功能性需求
+## 9. 非功能性需求
 
-### 8.1 性能
+### 9.1 性能
 
 | 指标 | 要求 |
 |------|------|
@@ -1160,7 +1295,7 @@ interface StoryboardVersion {
 | AI 生成响应 | 图片 < 30s，视频 < 300s |
 | 文件保存 | 自动保存 + 防抖，无需手动 |
 
-### 8.2 兼容性
+### 9.2 兼容性
 
 | 项目 | 要求 |
 |------|------|
@@ -1187,9 +1322,9 @@ interface StoryboardVersion {
 
 ---
 
-## 9. 当前状态与待完善项
+## 10. 当前状态与待完善项
 
-### 9.1 已实现功能状态
+### 10.1 已实现功能状态
 
 | 功能 | 状态 | 备注 |
 |------|------|------|
@@ -1211,7 +1346,7 @@ interface StoryboardVersion {
 | 协同编辑 | ❌ 未实现 | - |
 | 导出/发布 | ❌ 未实现 | - |
 
-### 9.2 技术债务
+### 10.2 技术债务
 
 | 项目 | 说明 | 优先级 |
 |------|------|--------|
@@ -1223,7 +1358,7 @@ interface StoryboardVersion {
 | 错误处理完善 | 统一错误处理和用户提示 | 中 |
 | 性能优化 | 大画布虚拟化、图片懒加载 | 低 |
 
-### 9.3 后续规划方向
+### 10.3 后续规划方向
 
 | 方向 | 说明 |
 |------|------|
