@@ -15,6 +15,16 @@ const LS_KEYS = {
   generateHistory: 'poc_generate_history',
 } as const
 
+export function resetDemoStorage(): void {
+  try {
+    localStorage.removeItem(LS_KEYS.assets)
+    localStorage.removeItem(LS_KEYS.canvasFiles)
+    localStorage.removeItem(LS_KEYS.generateHistory)
+  } catch {
+    console.warn('清理演示数据失败')
+  }
+}
+
 function lsRead<T>(key: string): T[] {
   try {
     const raw = localStorage.getItem(key)

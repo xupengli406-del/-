@@ -1,54 +1,26 @@
 import { useMemo } from 'react'
-import { FileText, Image, Film, Music, PenTool, Clock } from 'lucide-react'
+import { Image, Film, Clock } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useCanvasStore } from '../../store/canvasStore'
 
 const cards = [
   {
-    key: 'script',
-    icon: FileText,
-    title: '故事/脚本生成',
-    desc: '利用AI重构宏大的叙事结构',
-    iconBg: '#EFF6FF',
-    iconColor: '#2563EB',
-    stagger: 'stagger-1',
-  },
-  {
     key: 'image',
     icon: Image,
     title: '分镜图片生成',
-    desc: '精准呈现视觉构图与氛围',
+    desc: '面向单张分镜画面的生成与版本迭代',
     iconBg: '#FAF5FF',
     iconColor: '#9333EA',
-    stagger: 'stagger-2',
+    stagger: 'stagger-1',
   },
   {
     key: 'video',
     icon: Film,
-    title: '分镜视频生成',
-    desc: '为静态分镜注入动态生命力',
+    title: '视频生成',
+    desc: '面向镜头动态内容的视频生成与版本迭代',
     iconBg: '#FFF1F2',
     iconColor: '#E11D48',
-    stagger: 'stagger-3',
-  },
-  {
-    key: 'audio',
-    icon: Music,
-    title: '音乐音效生成',
-    desc: 'AI合成专属的电影感声效',
-    iconBg: '#FFFBEB',
-    iconColor: '#D97706',
-    stagger: 'stagger-4',
-  },
-  {
-    key: 'canvas',
-    icon: PenTool,
-    title: '画布自由创作',
-    desc: '在无限画布上开始您的灵感',
-    iconBg: '#F0FDFA',
-    iconColor: '#0D9488',
-    dashed: true,
-    stagger: 'stagger-5',
+    stagger: 'stagger-2',
   },
 ]
 
@@ -58,52 +30,39 @@ export default function WelcomeTab({ paneId }: { paneId?: string }) {
   const canvasFiles = useCanvasStore((s) => s.canvasFiles)
 
   const recentFiles = useMemo(
-    () => [...canvasFiles].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3),
+    () => [...canvasFiles]
+      .filter((file) => file.projectType === 'image' || file.projectType === 'video')
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 3),
     [canvasFiles]
   )
 
   const handleClick = (key: string) => {
     const cs = useCanvasStore.getState()
-    switch (key) {
-      case 'script': {
-        cs.updateCurrentCanvasFile()
-        cs.clearCanvas()
-        const nodeId = cs.addScriptNode()
-        const fileId = cs.saveCanvasAsFile('新剧本', 'script')
-        cs.setEditingProjectId(fileId)
-        openDocumentInPlace({ type: 'script', id: nodeId }, paneId)
-        break
-      }
-      case 'image':
-      case 'video':
-      case 'audio': {
-        const nameMap: Record<string, string> = {
-          image: '新分镜图片',
-          video: '新分镜视频',
-          audio: '新音乐音效',
-        }
-        cs.updateCurrentCanvasFile()
-        cs.clearCanvas()
-        const fileId = cs.saveCanvasAsFile(nameMap[key], key as 'image' | 'video' | 'audio')
-        cs.setEditingProjectId(fileId)
-        cs.setInitialAIMode(key as 'image' | 'video' | 'audio')
-        openDocumentInPlace({ type: 'ai', id: fileId }, paneId)
-        break
-      }
-      case 'canvas': {
-        cs.clearCanvas()
-        const canvasFileId = cs.saveCanvasAsFile('新画布', 'canvas')
-        cs.setEditingProjectId(canvasFileId)
-        openDocumentInPlace({ type: 'canvas', id: canvasFileId }, paneId)
-        break
-      }
-    }
+    if (key !== 'image' && key !== 'video') return
+
+    const nameMap = {
+      image: '新分镜图片',
+      video: '新视频',
+    } as const
+
+    cs.updateCurrentCanvasFile()
+    cs.clearCanvas()
+    const fileId = cs.saveCanvasAsFile(nameMap[key], key)
+    cs.setEditingProjectId(fileId)
+    openDocumentInPlace({ type: key === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }, paneId)
   }
 
   const handleOpenRecent = (fileId: string) => {
     const store = useCanvasStore.getState()
+    const file = store.canvasFiles.find((item) => item.id === fileId)
+    if (!file) return
+
     store.setEditingProjectId(fileId)
-    openDocument({ type: 'canvas', id: fileId })
+    openDocument({
+      type: file.projectType === 'video' ? 'videoGeneration' : 'imageGeneration',
+      id: fileId,
+    })
   }
 
   const formatTime = (ts: number) => {
@@ -134,8 +93,8 @@ export default function WelcomeTab({ paneId }: { paneId?: string }) {
           </p>
         </section>
 
-        {/* 五个功能卡片 */}
-        <section className="grid grid-cols-5 gap-4 mb-20">
+        {/* 两个核心功能卡片 */}
+        <section className="grid grid-cols-2 gap-4 mb-20 max-w-3xl">
           {cards.map((card) => {
             const Icon = card.icon
             const isDashed = 'dashed' in card && card.dashed
