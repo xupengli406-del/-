@@ -71,7 +71,6 @@ export default function FileTreeContextMenu({
             null,
             { icon: Copy, label: '创建副本', onClick: onDuplicate },
             { icon: FolderInput, label: '将文件移动到...', onClick: onMoveTo },
-            { icon: Bookmark, label: '收藏', onClick: onBookmark },
             null,
             { icon: Pencil, label: '重命名', onClick: onRename },
             { icon: Trash2, label: '删除', onClick: onDelete, danger: true },

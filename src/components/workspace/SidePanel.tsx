@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Plus, FileText, Image, Video, Music, LayoutDashboard, FolderPlus, Folder } from 'lucide-react'
+import { Plus, Image, Video, FolderPlus, Folder } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useCanvasStore } from '../../store/canvasStore'
 import FileTree from './FileTree'
@@ -24,27 +24,14 @@ export default function SidePanel() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showNewMenu])
 
-  const createFile = useCallback((projectType: 'script' | 'image' | 'video' | 'audio' | 'canvas') => {
+  const createFile = useCallback((projectType: 'image' | 'video') => {
     const store = useCanvasStore.getState()
     store.updateCurrentCanvasFile()
     store.clearCanvas()
-    const nameMap: Record<string, string> = { script: '新剧本', image: '新分镜图片', video: '新分镜视频', audio: '新音乐音效', canvas: '新画布' }
-    let docId: DocumentId
-    if (projectType === 'script') {
-      const nodeId = store.addScriptNode()
-      const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      store.setEditingProjectId(fileId)
-      docId = { type: 'script', id: nodeId }
-    } else if (projectType === 'canvas') {
-      const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      store.setEditingProjectId(fileId)
-      docId = { type: 'canvas', id: fileId }
-    } else {
-      const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      store.setEditingProjectId(fileId)
-      store.setInitialAIMode(projectType)
-      docId = { type: 'ai', id: fileId }
-    }
+    const nameMap: Record<'image' | 'video', string> = { image: '新分镜图片', video: '新视频' }
+    const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
+    store.setEditingProjectId(fileId)
+    const docId: DocumentId = { type: projectType === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }
     openDocument(docId)
     setShowNewMenu(false)
   }, [openDocument])
@@ -53,10 +40,10 @@ export default function SidePanel() {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* 头部: 我的项目 + (+) */}
+      {/* 头部: 文件列表 + (+) */}
       <div className="h-10 flex items-end px-4 flex-shrink-0">
         <div className="flex items-center gap-2 h-8 flex-1 min-w-0">
-        <span className="text-sm font-semibold tracking-tight text-ds-on-surface flex-1 truncate">我的项目</span>
+        <span className="text-sm font-semibold tracking-tight text-ds-on-surface flex-1 truncate">文件</span>
         <div className="relative">
           <button
             onClick={() => setShowNewMenu(v => !v)}
@@ -71,20 +58,11 @@ export default function SidePanel() {
               className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-ds-lg shadow-ambient py-1 min-w-[152px]"
               style={{ border: '1px solid rgba(179,177,183,0.2)' }}
             >
-              <button onClick={() => createFile('script')} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <FileText size={14} className="text-[#4A6CF7]" /> 新建故事脚本
-              </button>
               <button onClick={() => createFile('image')} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
                 <Image size={14} className="text-[#EC4899]" /> 新建分镜图片
               </button>
               <button onClick={() => createFile('video')} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <Video size={14} className="text-[#F97316]" /> 新建分镜视频
-              </button>
-              <button onClick={() => createFile('audio')} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <Music size={14} className="text-[#F87171]" /> 新建音乐音效
-              </button>
-              <button onClick={() => createFile('canvas')} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <LayoutDashboard size={14} className="text-[#8B5CF6]" /> 新建自由画布
+                <Video size={14} className="text-[#F97316]" /> 新建视频
               </button>
               <div className="h-px bg-ds-surface-container-high my-1" />
               <button onClick={() => { addCustomFolder('新文件夹'); setShowNewMenu(false) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">

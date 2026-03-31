@@ -25,6 +25,7 @@ interface WorkspaceState {
 
   // === 动作 ===
   openDocument: (docId: DocumentId, targetPaneId?: string) => void
+  openDocumentInNewTab: (docId: DocumentId, targetPaneId?: string) => void
   openDocumentInPlace: (docId: DocumentId, targetPaneId?: string) => void
   closeTab: (paneId: string, tabIndex: number) => void
   setActiveTab: (paneId: string, tabIndex: number) => void
@@ -115,6 +116,24 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const canvasState = useCanvasStore.getState()
     const label = getDocumentLabel(docId, canvasState)
 
+    const newTab: WorkspaceTab = { docId, label }
+
+    set({
+      paneLayout: updateLeafInTree(state.paneLayout, paneId, (leaf) => {
+        const tabs = [...leaf.tabs, newTab]
+        return { ...leaf, tabs, activeTabIndex: tabs.length - 1 }
+      }),
+      activePaneId: paneId,
+    })
+  },
+
+  // 强制在当前 pane 新增一个 tab 打开文档，不复用已有 tab
+  openDocumentInNewTab: (docId: DocumentId, targetPaneId?: string) => {
+    const state = get()
+    const paneId = targetPaneId || state.activePaneId
+
+    const canvasState = useCanvasStore.getState()
+    const label = getDocumentLabel(docId, canvasState)
     const newTab: WorkspaceTab = { docId, label }
 
     set({
@@ -278,12 +297,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     // 将每个 canvasFile 转换为 FileTreeItem
     const toFileItem = (f: { id: string; name: string; projectType?: string }): FileTreeItem => {
       const typeMap: Record<string, { type: import('./workspaceTypes').DocumentType; prefix: string }> = {
-        script: { type: 'script', prefix: 'script_' },
-        image: { type: 'ai', prefix: 'ai_' },
-        video: { type: 'ai', prefix: 'ai_' },
-        audio: { type: 'ai', prefix: 'ai_' },
+        image: { type: 'imageGeneration', prefix: 'image_' },
+        video: { type: 'videoGeneration', prefix: 'video_' },
       }
-      const mapped = typeMap[f.projectType || ''] || { type: 'canvas' as const, prefix: 'canvas_' }
+      const mapped = typeMap[f.projectType || '']
+      if (!mapped) {
+        throw new Error(`旧文件类型已下线: ${f.projectType || 'unknown'}`)
+      }
       return {
         id: `${mapped.prefix}${f.id}`,
         type: mapped.type,
@@ -312,6 +332,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       // 该层级的文件（folderId 匹配当前层级）
       for (const f of cs.canvasFiles) {
         if ((f.folderId ?? null) !== parentId) continue
+        if (f.projectType !== 'image' && f.projectType !== 'video') continue
         items.push(toFileItem(f))
       }
 

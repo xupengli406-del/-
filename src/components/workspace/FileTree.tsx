@@ -35,6 +35,8 @@ function collectFileIds(items: FileTreeItem[], expandedFolders: Set<string>): st
 // 从 FileTreeItem id 中提取 canvasFile id（用于拖拽归属）
 function extractCanvasFileId(itemId: string): string | null {
   if (itemId.startsWith('canvas_')) return itemId.slice(7)
+  if (itemId.startsWith('image_')) return itemId.slice(6)
+  if (itemId.startsWith('video_')) return itemId.slice(6)
   if (itemId.startsWith('ai_')) return itemId.slice(3)
   if (itemId.startsWith('script_')) return itemId.slice(7)
   return null
@@ -298,34 +300,18 @@ export default function FileTree() {
   }, [moveFileToFolder, moveFolderToFolder, selectedIds])
 
   // === 新建文件（在指定 folderId 下创建，null 表示根级） ===
-  const createFile = useCallback((projectType: 'script' | 'image' | 'video' | 'audio' | 'canvas', folderId: string | null) => {
+  const createFile = useCallback((projectType: 'image' | 'video', folderId: string | null) => {
     const store = useCanvasStore.getState()
     store.updateCurrentCanvasFile()
     store.clearCanvas()
 
-    const nameMap: Record<string, string> = {
-      script: '新剧本',
+    const nameMap: Record<'image' | 'video', string> = {
       image: '新分镜图片',
-      video: '新分镜视频',
-      audio: '新音乐音效',
-      canvas: '新画布',
+      video: '新视频',
     }
 
-    let fileId: string
-    let docId: DocumentId
-
-    if (projectType === 'script') {
-      const nodeId = store.addScriptNode()
-      fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      docId = { type: 'script', id: nodeId }
-    } else if (projectType === 'canvas') {
-      fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      docId = { type: 'canvas', id: fileId }
-    } else {
-      fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
-      store.setInitialAIMode(projectType)
-      docId = { type: 'ai', id: fileId }
-    }
+    const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
+    const docId: DocumentId = { type: projectType === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }
 
     store.setEditingProjectId(fileId)
 
@@ -343,11 +329,8 @@ export default function FileTree() {
   }, [openDocument])
 
   // 顶部+号菜单中的新建处理器
-  const handleNewScript = useCallback(() => { createFile('script', null); setShowNewMenu(false) }, [createFile])
   const handleNewImage = useCallback(() => { createFile('image', null); setShowNewMenu(false) }, [createFile])
   const handleNewVideo = useCallback(() => { createFile('video', null); setShowNewMenu(false) }, [createFile])
-  const handleNewAudio = useCallback(() => { createFile('audio', null); setShowNewMenu(false) }, [createFile])
-  const handleNewCanvas = useCallback(() => { createFile('canvas', null); setShowNewMenu(false) }, [createFile])
 
   // 新建文件夹（在根级或指定父文件夹下）
   const handleNewFolder = useCallback(() => {
@@ -454,8 +437,15 @@ export default function FileTree() {
       return
     }
     const cs = useCanvasStore.getState()
-    const fileId = id.replace(/^(canvas_|ai_|script_)/, '')
-    if (id.startsWith('canvas_') || id.startsWith('ai_') || id.startsWith('script_')) {
+    const fileId = id.replace(/^(canvas_|ai_|script_|image_|video_|audio_)/, '')
+    if (
+      id.startsWith('canvas_') ||
+      id.startsWith('ai_') ||
+      id.startsWith('script_') ||
+      id.startsWith('image_') ||
+      id.startsWith('video_') ||
+      id.startsWith('audio_')
+    ) {
       ws.closeTabsByFileId(fileId)
       cs.removeCanvasFile(fileId)
     }
@@ -505,7 +495,7 @@ export default function FileTree() {
   }, [selectedIds])
 
   const handleMoveToSingle = useCallback((docId: DocumentId) => {
-    const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'ai' ? 'ai' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
+    const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
     const fid = extractCanvasFileId(itemId)
     if (fid) {
       setMoveToFileIds([fid])
@@ -668,20 +658,11 @@ export default function FileTree() {
       className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
       style={{ left: x, top: y, border: '1px solid rgba(179,177,183,0.2)' }}
     >
-      <button onClick={() => { createFile('script', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-        <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
-      </button>
       <button onClick={() => { createFile('image', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
         <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
       </button>
       <button onClick={() => { createFile('video', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-        <Video size={13} className="text-[#F97316]" /> 新建分镜视频
-      </button>
-      <button onClick={() => { createFile('audio', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-        <Music size={13} className="text-[#F87171]" /> 新建音乐音效
-      </button>
-      <button onClick={() => { createFile('canvas', folderId); onClose() }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-        <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
+        <Video size={13} className="text-[#F97316]" /> 新建视频
       </button>
     </div>
   )
@@ -701,20 +682,11 @@ export default function FileTree() {
               className="absolute right-0 top-full mt-1 z-50 bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
               style={{ border: '1px solid rgba(179,177,183,0.2)' }}
             >
-              <button onClick={handleNewScript} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
-              </button>
               <button onClick={handleNewImage} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
                 <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
               </button>
               <button onClick={handleNewVideo} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <Video size={13} className="text-[#F97316]" /> 新建分镜视频
-              </button>
-              <button onClick={handleNewAudio} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <Music size={13} className="text-[#F87171]" /> 新建音乐音效
-              </button>
-              <button onClick={handleNewCanvas} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-                <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
+                <Video size={13} className="text-[#F97316]" /> 新建视频
               </button>
               <div className="h-px bg-ds-surface-container-high my-1" />
               <button onClick={() => { handleNewFolder(); setShowNewMenu(false) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
@@ -791,12 +763,25 @@ export default function FileTree() {
           }}
           onOpenInNewTab={() => {
             if (contextMenu.target.kind === 'file') {
-              openDocument(contextMenu.target.docId)
+              useWorkspaceStore.getState().openDocumentInNewTab(contextMenu.target.docId)
             }
           }}
           onOpenInNewGroup={() => {
             if (contextMenu.target.kind === 'file') {
               handleOpenInNewGroup(contextMenu.target.docId)
+            }
+          }}
+          onDuplicate={() => {
+            if (contextMenu.target.kind === 'file') {
+              const docId = contextMenu.target.docId
+              const cs = useCanvasStore.getState()
+              const source = cs.canvasFiles.find((f) => f.id === docId.id)
+              if (source) {
+                const copyId = cs.saveCanvasAsFile(`${source.name} 副本`, source.projectType as 'image' | 'video' | 'script' | 'audio' | 'canvas')
+                if (source.folderId) {
+                  cs.moveFileToFolder(copyId, source.folderId)
+                }
+              }
             }
           }}
           onMoveTo={() => {
@@ -823,7 +808,7 @@ export default function FileTree() {
               startRename(folderId, name)
             } else if (contextMenu.target.kind === 'file') {
               const docId = contextMenu.target.docId
-              const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'ai' ? 'ai' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
+              const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
               const findLabel = (items: FileTreeItem[]): string => {
                 for (const item of items) {
                   if (item.id === itemId) return item.label
@@ -845,7 +830,7 @@ export default function FileTree() {
               handleDelete(contextMenu.target.folderId)
             } else {
               const docId = contextMenu.target.docId
-              handleDelete(`${docId.type === 'canvas' ? 'canvas' : docId.type === 'ai' ? 'ai' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`)
+              handleDelete(`${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`)
             }
           }}
           onCreateFolderFromSelection={handleCreateFolderFromSelection}
@@ -860,20 +845,11 @@ export default function FileTree() {
           className="fixed z-[100] bg-white rounded-ds-lg shadow-ambient py-1 min-w-[140px]"
           style={{ left: blankContextMenuPos.x, top: blankContextMenuPos.y, border: '1px solid rgba(179,177,183,0.2)' }}
         >
-          <button onClick={() => { createFile('script', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-            <FileText size={13} className="text-[#4A6CF7]" /> 新建故事脚本
-          </button>
           <button onClick={() => { createFile('image', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <Image size={13} className="text-[#EC4899]" /> 新建分镜图片
           </button>
           <button onClick={() => { createFile('video', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-            <Video size={13} className="text-[#F97316]" /> 新建分镜视频
-          </button>
-          <button onClick={() => { createFile('audio', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-            <Music size={13} className="text-[#F87171]" /> 新建音乐音效
-          </button>
-          <button onClick={() => { createFile('canvas', null); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
-            <LayoutDashboard size={13} className="text-[#8B5CF6]" /> 新建自由画布
+            <Video size={13} className="text-[#F97316]" /> 新建视频
           </button>
           <div className="h-px bg-ds-surface-container-high my-1" />
           <button onClick={() => { handleNewFolder(); setBlankContextMenuPos(null) }} className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">

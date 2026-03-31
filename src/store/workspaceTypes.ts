@@ -1,7 +1,7 @@
 // ===== 工作区类型定义 =====
 
-// 文档类型 — 每个可以在 tab 中打开的实体
-export type DocumentType = 'canvas' | 'script' | 'character' | 'scene' | 'storyboardFrame' | 'media' | 'ai' | 'welcome'
+// 文档类型 — 当前版本只保留欢迎页、分镜图片生成、视频生成
+export type DocumentType = 'imageGeneration' | 'videoGeneration' | 'welcome'
 
 // 文档标识
 export interface DocumentId {
