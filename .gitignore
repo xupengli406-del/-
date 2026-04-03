@@ -38,3 +38,25 @@ server/data/
 server/uploads/*.png
 server/uploads/*.jpg
 server/__pycache__/
+
+# Temp scripts
+tmp_*.py
+
+# Python wheel/deps cache
+.pydeps/
+.wheelhouse/
+
+# Agent framework artifacts
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+.openclaw/
+
+# PRD drafts
+prd_fill.md
+
+# Empty output dirs
+outputs/
