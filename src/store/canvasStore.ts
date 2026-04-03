@@ -1,12 +1,5 @@
 import { create } from 'zustand'
-import {
-  type Node,
-  type Edge,
-  type OnNodesChange,
-  applyNodeChanges,
-  type NodeChange,
-} from '@xyflow/react'
-import type { TextNodeData, ImageNodeData, VideoNodeData, AudioNodeData, StoryboardFrameNodeData, StoryboardVersion, CharacterContext, SceneContext, StoryboardImportData, AssetItem, CanvasFile, CanvasFileMediaVersion, CustomFolder, ChatMessage, ChatReference, ModelInfo, AssetSortBy, AssetSortOrder, AssetViewMode, ScriptNodeData, CharacterNodeData, SceneNodeData, MediaNodeData } from './types'
+import type { AssetItem, CanvasFile, CanvasFileMediaVersion, CustomFolder, ChatMessage, ChatReference, ModelInfo, AssetSortBy, AssetSortOrder, AssetViewMode } from './types'
 import {
   fetchAssets,
   fetchCanvasFiles,
@@ -27,35 +20,11 @@ const canvasChannel = typeof BroadcastChannel !== 'undefined'
   ? new BroadcastChannel('canvas_sync')
   : null
 
-let nodeIdCounter = 0
-const genNodeId = () => `node_${++nodeIdCounter}_${Date.now()}`
-
 function canonicalMediaUrlFromFile(file: CanvasFile | undefined): string | null {
   const ms = file?.mediaState
   if (!ms?.selectedVersionId) return null
   return ms.versions.find((v) => v.id === ms.selectedVersionId)?.url ?? null
 }
-
-// 节点类型 → 显示名称映射
-const nodeTypeLabels: Record<string, string> = {
-  // 方案A 新类型
-  scriptNode: '剧本',
-  characterNode: '角色',
-  sceneNode: '场景',
-  storyboardFrameNode: '分镜格',
-  mediaNode: '素材',
-  // 旧类型兼容
-  textNode: '文本',
-  imageNode: '图片',
-  videoNode: '视频',
-  audioNode: '音频',
-}
-
-// 自动布局常量
-const LAYOUT_COLS = 4
-const LAYOUT_NODE_W = 280
-const LAYOUT_NODE_H = 320
-const LAYOUT_GAP = 24
 
 interface CanvasStore {
   // 认证状态
@@ -69,19 +38,6 @@ interface CanvasStore {
   editingProjectId: string | null
   setEditingProjectId: (id: string | null) => void
 
-  // 节点（无连线）
-  nodes: Node[]
-  edges: Edge[]
-  onNodesChange: OnNodesChange
-
-  // 选中节点（单选兼容）
-  selectedNodeId: string | null
-  setSelectedNodeId: (id: string | null) => void
-
-  // 多选节点
-  selectedNodeIds: string[]
-  setSelectedNodeIds: (ids: string[]) => void
-
   // 对话消息
   chatMessages: ChatMessage[]
   addChatMessage: (message: ChatMessage) => void
@@ -89,36 +45,8 @@ interface CanvasStore {
 
   // 对话引用（"添加到对话"缓冲区）
   chatReferences: ChatReference[]
-  addToConversation: (nodeIds: string[]) => void
   removeChatReference: (nodeId: string) => void
   clearChatReferences: () => void
-
-  // 从对话生成结果添加展示节点（自动布局，不再创建关联资产）
-  addDisplayNode: (type: 'textNode' | 'imageNode' | 'videoNode' | 'audioNode', content: {
-    label?: string
-    text?: string
-    imageUrl?: string
-    videoUrl?: string
-    audioUrl?: string
-  }) => string
-
-  // 方案A 新节点创建方法
-  addScriptNode: (data?: Partial<ScriptNodeData>) => string
-  addCharacterNode: (characterId: string) => string
-  addSceneNode: (sceneId: string) => string
-  addMediaNode: (mediaType: MediaNodeData['mediaType'], content: {
-    label?: string
-    url?: string
-    textContent?: string
-    prompt?: string
-  }) => string
-
-  // 更新节点数据
-  updateNodeData: (nodeId: string, data: Record<string, unknown>) => void
-
-  // 删除节点
-  deleteNode: (nodeId: string) => void
-  deleteNodes: (nodeIds: string[]) => void
 
   // 素材库（仅主页生成/上传内容）
   assets: AssetItem[]
@@ -133,44 +61,9 @@ interface CanvasStore {
   removeCanvasFile: (id: string) => void
   renameCanvasFile: (id: string, name: string) => void
   updateCurrentCanvasFile: () => void
-  exportNodeAsAsset: (nodeId: string) => void
 
   // 画布操作
   clearCanvas: () => void
-
-  // 创作上下文（角色+场景）
-  characters: CharacterContext[]
-  scenes: SceneContext[]
-  activeFrameId: string | null
-  activeCharacterId: string | null
-  activeSceneId: string | null
-
-  // 角色管理
-  addCharacter: (character: CharacterContext) => void
-  updateCharacter: (id: string, updates: Partial<CharacterContext>) => void
-  removeCharacter: (id: string) => void
-
-  // 场景管理
-  addScene: (scene: SceneContext) => void
-  updateScene: (id: string, updates: Partial<SceneContext>) => void
-  removeScene: (id: string) => void
-
-  // 分镜格操作
-  setActiveFrame: (id: string | null) => void
-  setActiveCharacter: (id: string | null) => void
-  setActiveScene: (id: string | null) => void
-  addFrameVersion: (frameNodeId: string, version: StoryboardVersion) => void
-  selectFrameVersion: (frameNodeId: string, versionId: string) => void
-
-  // 分镜脚本导入
-  importStoryboard: (data: StoryboardImportData) => void
-
-  // 上下文自动组装
-  getFrameContext: (frameNodeId: string) => {
-    frame: StoryboardFrameNodeData | null
-    characters: CharacterContext[]
-    scene: SceneContext | null
-  }
 
   // 生成页对话历史（持久化）
   generateHistory: GenerateHistoryPayload[]
@@ -181,9 +74,9 @@ interface CanvasStore {
   // 初始化（从后端加载）
   initializeFromBackend: () => Promise<void>
 
-  // AI 面板初始模式（WelcomeTab 设置，AIPane 消费后清空）
-  initialAIMode: 'image' | 'video' | 'audio' | 'script' | null
-  setInitialAIMode: (mode: 'image' | 'video' | 'audio' | 'script' | null) => void
+  // AI 面板初始模式
+  initialAIMode: 'image' | 'video' | null
+  setInitialAIMode: (mode: 'image' | 'video' | null) => void
 
   // 生成视图历史面板
   isHistoryPanelOpen: boolean
@@ -242,28 +135,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   editingProjectId: null,
   setEditingProjectId: (id) => set({ editingProjectId: id }),
 
-  nodes: [],
-  edges: [], // 始终为空，保留字段以兼容 React Flow
-  selectedNodeId: null,
-  selectedNodeIds: [],
   chatMessages: [],
   chatReferences: [],
   assets: [],
   canvasFiles: [],
   generateHistory: [],
-  characters: [],
-  scenes: [],
-  activeFrameId: null,
-  activeCharacterId: null,
-  activeSceneId: null,
-
-  onNodesChange: (changes: NodeChange[]) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) })
-  },
-
-  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
-
-  setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
   // ===== 对话消息管理 =====
 
@@ -279,268 +155,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     })
   },
 
-  // ===== 添加到对话 =====
-
-  addToConversation: (nodeIds) => {
-    const { nodes, chatReferences } = get()
-    const existingIds = new Set(chatReferences.map((r) => r.nodeId))
-    const newRefs: ChatReference[] = []
-
-    for (const nodeId of nodeIds) {
-      if (existingIds.has(nodeId)) continue
-      const node = nodes.find((n) => n.id === nodeId)
-      if (!node) continue
-
-      const ref: ChatReference = {
-        nodeId: node.id,
-        nodeType: node.type || 'textNode',
-        label: (node.data as { label?: string }).label || nodeTypeLabels[node.type || 'textNode'],
-      }
-
-      if (node.type === 'imageNode') {
-        ref.previewUrl = (node.data as ImageNodeData).imageUrl
-      } else if (node.type === 'videoNode') {
-        ref.previewUrl = (node.data as VideoNodeData).videoUrl
-      } else if (node.type === 'textNode') {
-        ref.previewText = (node.data as TextNodeData).text?.slice(0, 50)
-      } else if (node.type === 'audioNode') {
-        ref.previewUrl = (node.data as AudioNodeData).audioUrl
-      } else if (node.type === 'storyboardFrameNode') {
-        const frameData = node.data as StoryboardFrameNodeData
-        ref.previewText = frameData.dialogue?.slice(0, 50)
-        const selectedVer = frameData.versions.find((v) => v.id === frameData.selectedVersionId)
-        if (selectedVer?.imageUrl) ref.previewUrl = selectedVer.imageUrl
-      } else if (node.type === 'mediaNode') {
-        const mediaData = node.data as MediaNodeData
-        if (mediaData.mediaType === 'text') {
-          ref.previewText = mediaData.textContent?.slice(0, 50)
-        } else {
-          ref.previewUrl = mediaData.url
-        }
-      } else if (node.type === 'scriptNode') {
-        ref.previewText = (node.data as ScriptNodeData).synopsis?.slice(0, 50)
-      } else if (node.type === 'characterNode') {
-        const charData = node.data as CharacterNodeData
-        ref.previewUrl = charData.avatarUrl
-        ref.previewText = charData.name
-      } else if (node.type === 'sceneNode') {
-        const sceneData = node.data as SceneNodeData
-        ref.previewUrl = sceneData.thumbnailUrl
-        ref.previewText = sceneData.name
-      }
-
-      newRefs.push(ref)
-    }
-
-    set({ chatReferences: [...chatReferences, ...newRefs] })
-  },
+  // ===== 对话引用 =====
 
   removeChatReference: (nodeId) => {
     set({ chatReferences: get().chatReferences.filter((r) => r.nodeId !== nodeId) })
   },
 
   clearChatReferences: () => set({ chatReferences: [] }),
-
-  // ===== 展示节点（从画布对话生成结果创建，不再创建关联资产） =====
-
-  addDisplayNode: (type, content) => {
-    const id = genNodeId()
-    const { nodes } = get()
-
-    // 自动布局：计算下一个节点位置
-    const count = nodes.length
-    const col = count % LAYOUT_COLS
-    const row = Math.floor(count / LAYOUT_COLS)
-    const position = {
-      x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-      y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-    }
-
-    const label = content.label || nodeTypeLabels[type] || '节点'
-
-    let nodeData: Record<string, unknown>
-    switch (type) {
-      case 'textNode':
-        nodeData = {
-          label,
-          text: content.text || '',
-          prompt: '',
-          generatedText: content.text || '',
-          status: content.text ? 'completed' : 'idle',
-          selectedModel: '',
-        }
-        break
-      case 'imageNode':
-        nodeData = {
-          label,
-          imageUrl: content.imageUrl || '',
-          prompt: '',
-          status: content.imageUrl ? 'completed' : 'idle',
-          selectedModel: '',
-        }
-        break
-      case 'videoNode':
-        nodeData = {
-          label,
-          videoUrl: content.videoUrl || '',
-          prompt: '',
-          status: content.videoUrl ? 'completed' : 'idle',
-        }
-        break
-      case 'audioNode':
-        nodeData = {
-          label,
-          audioUrl: content.audioUrl || '',
-          prompt: '',
-          status: content.audioUrl ? 'completed' : 'idle',
-        }
-        break
-    }
-
-    const newNode: Node = {
-      id,
-      type,
-      position,
-      data: nodeData,
-    }
-
-    // 画布生成的内容只留在画布中，不创建关联资产
-    set({
-      nodes: [...nodes, newNode],
-    })
-
-    return id
-  },
-
-  // ===== 方案A 新节点创建 =====
-
-  addScriptNode: (data) => {
-    const id = genNodeId()
-    const { nodes } = get()
-    const count = nodes.length
-    const col = count % LAYOUT_COLS
-    const row = Math.floor(count / LAYOUT_COLS)
-    const position = {
-      x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-      y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-    }
-    const nodeData: ScriptNodeData = {
-      label: data?.title || '新剧本',
-      title: data?.title || '新剧本',
-      synopsis: data?.synopsis || '',
-      content: data?.content || '',
-      status: data?.status || 'idle',
-    }
-    const newNode: Node = { id, type: 'scriptNode', position, data: nodeData }
-    set({ nodes: [...nodes, newNode] })
-    return id
-  },
-
-  addCharacterNode: (characterId) => {
-    const id = genNodeId()
-    const { nodes, characters } = get()
-    const char = characters.find((c) => c.id === characterId)
-    if (!char) return id
-
-    const count = nodes.length
-    const col = count % LAYOUT_COLS
-    const row = Math.floor(count / LAYOUT_COLS)
-    const position = {
-      x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-      y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-    }
-    const nodeData: CharacterNodeData = {
-      label: char.name,
-      characterId,
-      name: char.name,
-      avatarUrl: char.referenceImageUrl || '',
-      tags: char.tags || [],
-      status: 'idle',
-    }
-    const newNode: Node = { id, type: 'characterNode', position, data: nodeData }
-    set({ nodes: [...nodes, newNode] })
-    return id
-  },
-
-  addSceneNode: (sceneId) => {
-    const id = genNodeId()
-    const { nodes, scenes } = get()
-    const scene = scenes.find((s) => s.id === sceneId)
-    if (!scene) return id
-
-    const count = nodes.length
-    const col = count % LAYOUT_COLS
-    const row = Math.floor(count / LAYOUT_COLS)
-    const position = {
-      x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-      y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-    }
-    const nodeData: SceneNodeData = {
-      label: scene.name,
-      sceneId,
-      name: scene.name,
-      thumbnailUrl: scene.referenceImageUrl || '',
-      description: scene.description || '',
-      status: 'idle',
-    }
-    const newNode: Node = { id, type: 'sceneNode', position, data: nodeData }
-    set({ nodes: [...nodes, newNode] })
-    return id
-  },
-
-  addMediaNode: (mediaType, content) => {
-    const id = genNodeId()
-    const { nodes } = get()
-    const count = nodes.length
-    const col = count % LAYOUT_COLS
-    const row = Math.floor(count / LAYOUT_COLS)
-    const position = {
-      x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-      y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-    }
-    const mediaTypeLabels = { image: '图片', video: '视频', audio: '音频', text: '文本' }
-    const nodeData: MediaNodeData = {
-      label: content.label || mediaTypeLabels[mediaType] || '素材',
-      mediaType,
-      url: content.url || '',
-      textContent: content.textContent,
-      name: content.label || mediaTypeLabels[mediaType] || '素材',
-      prompt: content.prompt,
-      status: content.url || content.textContent ? 'completed' : 'idle',
-    }
-    const newNode: Node = { id, type: 'mediaNode', position, data: nodeData }
-    set({ nodes: [...nodes, newNode] })
-    return id
-  },
-
-  updateNodeData: (nodeId, data) => {
-    set({
-      nodes: get().nodes.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...data } }
-          : node
-      ),
-    })
-  },
-
-  deleteNode: (nodeId) => {
-    set({
-      nodes: get().nodes.filter((n) => n.id !== nodeId),
-      selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
-      selectedNodeIds: get().selectedNodeIds.filter((id) => id !== nodeId),
-      chatReferences: get().chatReferences.filter((r) => r.nodeId !== nodeId),
-    })
-  },
-
-  deleteNodes: (nodeIds) => {
-    const idSet = new Set(nodeIds)
-    set({
-      nodes: get().nodes.filter((n) => !idSet.has(n.id)),
-      selectedNodeId: get().selectedNodeId && idSet.has(get().selectedNodeId!) ? null : get().selectedNodeId,
-      selectedNodeIds: [],
-      chatReferences: get().chatReferences.filter((r) => !idSet.has(r.nodeId)),
-    })
-  },
 
   // ===== 素材库（仅主页生成+上传内容） =====
 
@@ -551,7 +172,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       id: asset.id,
       name: asset.name,
       url: asset.url,
-      type: asset.type,
+      type: asset.type as 'image' | 'video' | 'text',
       source: asset.source || 'upload',
       textContent: asset.textContent,
       createdAt: asset.createdAt,
@@ -565,7 +186,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       id: asset.id,
       name: asset.name,
       url: asset.url,
-      type: asset.type,
+      type: asset.type as 'image' | 'video' | 'text',
       source: 'generate',
       textContent: asset.textContent,
       createdAt: asset.createdAt,
@@ -583,15 +204,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   // ===== 画布文件管理 =====
 
   saveCanvasAsFile: (name, projectType) => {
-    const { nodes, characters, scenes, canvasFiles } = get()
-    // 缩略图：优先取 imageNode/mediaNode(image) 的图片
-    const firstImage = nodes.find((n) =>
-      (n.type === 'imageNode' && (n.data as ImageNodeData).imageUrl) ||
-      (n.type === 'mediaNode' && (n.data as MediaNodeData).mediaType === 'image' && (n.data as MediaNodeData).url)
-    )
-    const thumbnailUrl = firstImage
-      ? (firstImage.type === 'mediaNode' ? (firstImage.data as MediaNodeData).url : (firstImage.data as ImageNodeData).imageUrl)
-      : ''
+    const { canvasFiles } = get()
     const isDedicatedMedia = projectType === 'image' || projectType === 'video'
     const file: CanvasFile = {
       id: `canvas_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -604,13 +217,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           }
         : {}),
       snapshot: {
-        nodes: JSON.parse(JSON.stringify(nodes)),
+        nodes: [],
         edges: [],
-        characters: JSON.parse(JSON.stringify(characters)),
-        scenes: JSON.parse(JSON.stringify(scenes)),
       },
-      thumbnailUrl,
-      nodeCount: nodes.length,
+      thumbnailUrl: '',
+      nodeCount: 0,
       edgeCount: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -623,91 +234,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   loadCanvasFile: (id) => {
     const file = get().canvasFiles.find((f) => f.id === id)
     if (!file) return
-    const snapshotNodes = JSON.parse(JSON.stringify(file.snapshot.nodes)) as Node[]
-
-    // 迁移旧节点类型 → MediaNode
-    const migratedNodes = snapshotNodes.map((node) => {
-      if (node.type === 'textNode') {
-        const d = node.data as TextNodeData
-        return {
-          ...node,
-          type: 'mediaNode',
-          data: {
-            label: d.label || '文本',
-            mediaType: 'text' as const,
-            url: '',
-            textContent: d.text || d.generatedText || '',
-            name: d.label || '文本',
-            prompt: d.prompt,
-            status: d.status || 'idle',
-          } satisfies MediaNodeData,
-        }
-      }
-      if (node.type === 'imageNode') {
-        const d = node.data as ImageNodeData
-        return {
-          ...node,
-          type: 'mediaNode',
-          data: {
-            label: d.label || '图片',
-            mediaType: 'image' as const,
-            url: d.imageUrl || '',
-            name: d.label || '图片',
-            prompt: d.prompt,
-            status: d.status || 'idle',
-          } satisfies MediaNodeData,
-        }
-      }
-      if (node.type === 'videoNode') {
-        const d = node.data as VideoNodeData
-        return {
-          ...node,
-          type: 'mediaNode',
-          data: {
-            label: d.label || '视频',
-            mediaType: 'video' as const,
-            url: d.videoUrl || '',
-            name: d.label || '视频',
-            prompt: d.prompt,
-            status: d.status || 'idle',
-          } satisfies MediaNodeData,
-        }
-      }
-      if (node.type === 'audioNode') {
-        const d = node.data as AudioNodeData
-        return {
-          ...node,
-          type: 'mediaNode',
-          data: {
-            label: d.label || '音频',
-            mediaType: 'audio' as const,
-            url: d.audioUrl || '',
-            name: d.label || '音频',
-            prompt: d.prompt,
-            status: d.status || 'idle',
-          } satisfies MediaNodeData,
-        }
-      }
-      return node
-    })
-
-    const snapshotCharacters = file.snapshot.characters
-      ? JSON.parse(JSON.stringify(file.snapshot.characters)) as CharacterContext[]
-      : []
-    const snapshotScenes = file.snapshot.scenes
-      ? JSON.parse(JSON.stringify(file.snapshot.scenes)) as SceneContext[]
-      : []
-    set({
-      nodes: migratedNodes,
-      edges: [],
-      characters: snapshotCharacters,
-      scenes: snapshotScenes,
-      selectedNodeId: null,
-      selectedNodeIds: [],
-      activeFrameId: null,
-      activeCharacterId: null,
-      activeSceneId: null,
-    })
+    // 画布系统已移除，loadCanvasFile 仅用于设置当前编辑项目
+    // 旧 snapshot 中的 nodes/edges 数据不再加载到内存
   },
 
   removeCanvasFile: (id) => {
@@ -730,34 +258,19 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   updateCurrentCanvasFile: () => {
-    const { editingProjectId, nodes, characters, scenes, canvasFiles } = get()
+    const { editingProjectId, canvasFiles } = get()
     if (!editingProjectId || editingProjectId === '__new__') return
     const prevFile = canvasFiles.find((f) => f.id === editingProjectId)
-    const firstImage = nodes.find((n) =>
-      (n.type === 'imageNode' && (n.data as ImageNodeData).imageUrl) ||
-      (n.type === 'mediaNode' && (n.data as MediaNodeData).mediaType === 'image' && (n.data as MediaNodeData).url)
-    )
-    const thumbnailFromNodes = firstImage
-      ? (firstImage.type === 'mediaNode' ? (firstImage.data as MediaNodeData).url : (firstImage.data as ImageNodeData).imageUrl)
-      : ''
     const thumbCanonical = canonicalMediaUrlFromFile(prevFile)
     const thumbnailUrl =
       (typeof thumbCanonical === 'string' && thumbCanonical) ||
-      thumbnailFromNodes ||
       prevFile?.thumbnailUrl ||
       ''
     const updatedFiles = canvasFiles.map((f) =>
       f.id === editingProjectId
         ? {
             ...f,
-            snapshot: {
-              nodes: JSON.parse(JSON.stringify(nodes)),
-              edges: [],
-              characters: JSON.parse(JSON.stringify(characters)),
-              scenes: JSON.parse(JSON.stringify(scenes)),
-            },
             thumbnailUrl,
-            nodeCount: nodes.length,
             updatedAt: Date.now(),
           }
         : f
@@ -854,254 +367,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     return canonicalMediaUrlFromFile(f)
   },
 
-  exportNodeAsAsset: (nodeId) => {
-    const node = get().nodes.find((n) => n.id === nodeId)
-    if (!node) return
-    const nt = node.type || 'textNode'
-    const assetType = (nt === 'textNode' ? 'text' : nt === 'imageNode' ? 'image' : nt === 'videoNode' ? 'video' : 'audio') as AssetItem['type']
-    let url = ''
-    let textContent: string | undefined
-    if (node.type === 'imageNode') url = (node.data as ImageNodeData).imageUrl || ''
-    if (node.type === 'videoNode') url = (node.data as VideoNodeData).videoUrl || ''
-    if (node.type === 'audioNode') url = (node.data as AudioNodeData).audioUrl || ''
-    if (node.type === 'textNode') textContent = (node.data as TextNodeData).text || ''
-    const newAsset: AssetItem = {
-      id: `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: (node.data as { label?: string }).label || nodeTypeLabels[nt] || '节点',
-      url,
-      type: assetType,
-      source: 'generate',
-      textContent,
-      createdAt: Date.now(),
-    }
-    set({ assets: [...get().assets, newAsset] })
-    createAssetAPI({
-      id: newAsset.id,
-      name: newAsset.name,
-      url: newAsset.url,
-      type: newAsset.type,
-      source: newAsset.source,
-      textContent: newAsset.textContent,
-      createdAt: newAsset.createdAt,
-    })
-  },
-
   clearCanvas: () => {
     set({
-      nodes: [],
-      edges: [],
-      selectedNodeId: null,
-      selectedNodeIds: [],
-      activeFrameId: null,
-      activeCharacterId: null,
-      activeSceneId: null,
+      chatMessages: [],
+      chatReferences: [],
     })
-  },
-
-  // ===== 角色管理 =====
-
-  addCharacter: (character) => {
-    set({ characters: [...get().characters, character] })
-  },
-
-  updateCharacter: (id, updates) => {
-    set({
-      characters: get().characters.map((c) =>
-        c.id === id ? { ...c, ...updates } : c
-      ),
-    })
-  },
-
-  removeCharacter: (id) => {
-    set({ characters: get().characters.filter((c) => c.id !== id) })
-  },
-
-  // ===== 场景管理 =====
-
-  addScene: (scene) => {
-    set({ scenes: [...get().scenes, scene] })
-  },
-
-  updateScene: (id, updates) => {
-    set({
-      scenes: get().scenes.map((s) =>
-        s.id === id ? { ...s, ...updates } : s
-      ),
-    })
-  },
-
-  removeScene: (id) => {
-    set({ scenes: get().scenes.filter((s) => s.id !== id) })
-  },
-
-  // ===== 分镜格操作 =====
-
-  setActiveFrame: (id) => set({ activeFrameId: id, activeCharacterId: null, activeSceneId: null }),
-
-  setActiveCharacter: (id) => set({ activeCharacterId: id, activeFrameId: null, activeSceneId: null }),
-
-  setActiveScene: (id) => set({ activeSceneId: id, activeFrameId: null, activeCharacterId: null }),
-
-  addFrameVersion: (frameNodeId, version) => {
-    set({
-      nodes: get().nodes.map((n) =>
-        n.id === frameNodeId && n.type === 'storyboardFrameNode'
-          ? {
-              ...n,
-              data: {
-                ...n.data,
-                versions: [...(n.data as StoryboardFrameNodeData).versions, version],
-                selectedVersionId: version.id,
-                status: 'completed',
-              },
-            }
-          : n
-      ),
-    })
-  },
-
-  selectFrameVersion: (frameNodeId, versionId) => {
-    set({
-      nodes: get().nodes.map((n) =>
-        n.id === frameNodeId && n.type === 'storyboardFrameNode'
-          ? { ...n, data: { ...n.data, selectedVersionId: versionId } }
-          : n
-      ),
-    })
-  },
-
-  // ===== 分镜脚本导入 =====
-
-  importStoryboard: (data) => {
-    const { nodes } = get()
-
-    // 创建角色
-    const newCharacters: CharacterContext[] = (data.characters || []).map((c) => ({
-      id: `char_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: c.name,
-      description: c.description || '',
-      referenceImageUrl: c.referenceImageUrl || '',
-      tags: c.tags || [],
-      createdAt: Date.now(),
-    }))
-    const charNameToId = new Map(newCharacters.map((c) => [c.name, c.id]))
-
-    // 创建场景
-    const newScenes: SceneContext[] = (data.scenes || []).map((s) => ({
-      id: `scene_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: s.name,
-      description: s.description || '',
-      referenceImageUrl: s.referenceImageUrl || '',
-      createdAt: Date.now(),
-    }))
-    const sceneNameToId = new Map(newScenes.map((s) => [s.name, s.id]))
-
-    // 布局计算：角色节点在左列，场景节点在角色下方，分镜格在右侧
-    const allNewNodes: Node[] = []
-    let currentIndex = nodes.length
-
-    // 创建角色节点
-    newCharacters.forEach((char) => {
-      const col = currentIndex % LAYOUT_COLS
-      const row = Math.floor(currentIndex / LAYOUT_COLS)
-      const charNodeData: CharacterNodeData = {
-        label: char.name,
-        characterId: char.id,
-        name: char.name,
-        avatarUrl: char.referenceImageUrl || '',
-        tags: char.tags || [],
-        status: 'idle',
-      }
-      allNewNodes.push({
-        id: genNodeId(),
-        type: 'characterNode',
-        position: {
-          x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-          y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-        },
-        data: charNodeData,
-      })
-      currentIndex++
-    })
-
-    // 创建场景节点
-    newScenes.forEach((scene) => {
-      const col = currentIndex % LAYOUT_COLS
-      const row = Math.floor(currentIndex / LAYOUT_COLS)
-      const sceneNodeData: SceneNodeData = {
-        label: scene.name,
-        sceneId: scene.id,
-        name: scene.name,
-        thumbnailUrl: scene.referenceImageUrl || '',
-        description: scene.description || '',
-        status: 'idle',
-      }
-      allNewNodes.push({
-        id: genNodeId(),
-        type: 'sceneNode',
-        position: {
-          x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-          y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-        },
-        data: sceneNodeData,
-      })
-      currentIndex++
-    })
-
-    // 创建分镜格节点
-    ;(data.frames || []).forEach((frame) => {
-      const col = currentIndex % LAYOUT_COLS
-      const row = Math.floor(currentIndex / LAYOUT_COLS)
-
-      const frameData: StoryboardFrameNodeData = {
-        label: `第${frame.index}格`,
-        index: frame.index,
-        dialogue: frame.dialogue || '',
-        description: frame.description || '',
-        shot: frame.shot || '',
-        characterIds: (frame.characters || [])
-          .map((name) => charNameToId.get(name))
-          .filter(Boolean) as string[],
-        sceneId: frame.scene ? (sceneNameToId.get(frame.scene) || null) : null,
-        versions: [],
-        selectedVersionId: null,
-        status: 'idle' as const,
-      }
-
-      allNewNodes.push({
-        id: genNodeId(),
-        type: 'storyboardFrameNode',
-        position: {
-          x: col * (LAYOUT_NODE_W + LAYOUT_GAP),
-          y: row * (LAYOUT_NODE_H + LAYOUT_GAP),
-        },
-        data: frameData,
-      })
-      currentIndex++
-    })
-
-    set({
-      nodes: [...nodes, ...allNewNodes],
-      characters: [...get().characters, ...newCharacters],
-      scenes: [...get().scenes, ...newScenes],
-    })
-  },
-
-  // ===== 上下文自动组装 =====
-
-  getFrameContext: (frameNodeId) => {
-    const node = get().nodes.find((n) => n.id === frameNodeId)
-    if (!node || node.type !== 'storyboardFrameNode') {
-      return { frame: null, characters: [], scene: null }
-    }
-    const frameData = node.data as StoryboardFrameNodeData
-    const chars = frameData.characterIds
-      .map((cid) => get().characters.find((c) => c.id === cid))
-      .filter(Boolean) as CharacterContext[]
-    const scene = frameData.sceneId
-      ? get().scenes.find((s) => s.id === frameData.sceneId) || null
-      : null
-    return { frame: frameData, characters: chars, scene }
   },
 
   // ===== 生成页对话历史（持久化） =====
@@ -1164,7 +434,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       canvasFiles: canvasFiles.map((f) => ({
         id: f.id,
         name: f.name,
-        projectType: f.projectType,
+        projectType: f.projectType as CanvasFile['projectType'],
         folderId: f.folderId,
         mediaState: f.mediaState,
         aiSession: f.aiSession,

@@ -7,8 +7,6 @@ import {
   FileText,
   Image,
   Video,
-  Music,
-  LayoutDashboard,
 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useCanvasStore } from '../../store/canvasStore'
@@ -220,6 +218,25 @@ export default function FileTree() {
     dragItemRef.current = { itemId, canvasFileId, isFolder }
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', itemId)
+
+    // 为 GenerationPane 的拖拽引用设置 JSON 数据
+    if (!isFolder && canvasFileId) {
+      const file = useCanvasStore.getState().canvasFiles.find(f => f.id === canvasFileId)
+      const ms = file?.mediaState
+      if (ms?.versions.length) {
+        const ver = ms.selectedVersionId
+          ? ms.versions.find(v => v.id === ms.selectedVersionId)
+          : ms.versions[ms.versions.length - 1]
+        if (ver?.url) {
+          e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'generated-content',
+            url: ver.url,
+            name: file!.name,
+            id: file!.id,
+          }))
+        }
+      }
+    }
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent, folderId: string) => {
@@ -495,7 +512,7 @@ export default function FileTree() {
   }, [selectedIds])
 
   const handleMoveToSingle = useCallback((docId: DocumentId) => {
-    const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
+    const itemId = `${docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type}_${docId.id}`
     const fid = extractCanvasFileId(itemId)
     if (fid) {
       setMoveToFileIds([fid])
@@ -509,11 +526,8 @@ export default function FileTree() {
       const cs = useCanvasStore.getState()
       const canvasFile = cs.canvasFiles.find((f) => f.id === item.docId!.id)
       const pt = canvasFile?.projectType
-      if (pt === 'script') return <FileText size={13} className="text-blue-500 flex-shrink-0" />
       if (pt === 'image') return <Image size={13} className="text-purple-500 flex-shrink-0" />
       if (pt === 'video') return <Video size={13} className="text-rose-500 flex-shrink-0" />
-      if (pt === 'audio') return <Music size={13} className="text-amber-500 flex-shrink-0" />
-      if (pt === 'canvas') return <LayoutDashboard size={13} className="text-teal-500 flex-shrink-0" />
     }
     return <FileText size={13} className="text-gray-400 flex-shrink-0" />
   }
@@ -777,7 +791,7 @@ export default function FileTree() {
               const cs = useCanvasStore.getState()
               const source = cs.canvasFiles.find((f) => f.id === docId.id)
               if (source) {
-                const copyId = cs.saveCanvasAsFile(`${source.name} 副本`, source.projectType as 'image' | 'video' | 'script' | 'audio' | 'canvas')
+                const copyId = cs.saveCanvasAsFile(`${source.name} 副本`, source.projectType as 'image' | 'video')
                 if (source.folderId) {
                   cs.moveFileToFolder(copyId, source.folderId)
                 }
@@ -808,7 +822,7 @@ export default function FileTree() {
               startRename(folderId, name)
             } else if (contextMenu.target.kind === 'file') {
               const docId = contextMenu.target.docId
-              const itemId = `${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`
+              const itemId = `${docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type}_${docId.id}`
               const findLabel = (items: FileTreeItem[]): string => {
                 for (const item of items) {
                   if (item.id === itemId) return item.label
@@ -830,7 +844,7 @@ export default function FileTree() {
               handleDelete(contextMenu.target.folderId)
             } else {
               const docId = contextMenu.target.docId
-              handleDelete(`${docId.type === 'canvas' ? 'canvas' : docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type === 'script' ? 'script' : docId.type}_${docId.id}`)
+              handleDelete(`${docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type}_${docId.id}`)
             }
           }}
           onCreateFolderFromSelection={handleCreateFolderFromSelection}

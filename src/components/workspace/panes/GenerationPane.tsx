@@ -2,11 +2,8 @@ import { useState, useRef, useEffect, useCallback, useMemo, type ChangeEvent, ty
 import {
   Image,
   Video,
-  Music,
   Plus,
   Send,
-  Search,
-  BrainCircuit,
   X,
   Loader2,
   ChevronDown,
@@ -14,9 +11,6 @@ import {
   Check,
   Sparkles,
   MonitorPlay,
-  FileText,
-  User,
-  MapPin,
   Film,
 } from 'lucide-react'
 import { useCanvasStore } from '../../../store/canvasStore'
@@ -33,14 +27,13 @@ import {
   modeConfig,
   IMAGE_RATIO_OPTIONS,
   IMAGE_RESOLUTION_OPTIONS,
-  IMAGE_BATCH_OPTIONS,
   VIDEO_LENGTH_OPTIONS,
   VIDEO_RATIO_OPTIONS,
   VIDEO_REFERENCE_OPTIONS,
   VIDEO_RESOLUTION_OPTIONS,
   type GenerateMode,
 } from '../../generate/constants'
-import type { StoryboardVersion, ScriptNodeData, ChatMessage } from '../../../store/types'
+import type { ChatMessage } from '../../../store/types'
 import { useEditorOptions } from '../../../hooks/useEditorOptions'
 
 // 附件类型：本地文件 或 拖拽引用
@@ -64,7 +57,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
     const f = canvasFiles.find((cf) => cf.id === fileId)
     if (f?.projectType === 'image') return 'image' as GenerateMode
     if (f?.projectType === 'video') return 'video' as GenerateMode
-    if (f?.projectType === 'audio') return 'audio' as GenerateMode
     return null
   })()
   const initialAIMode = useCanvasStore((s) => s.initialAIMode)
@@ -80,23 +72,9 @@ export default function AIPane({ fileId }: AIPaneProps) {
   const {
     ak,
     chatMessages,
-    addChatMessage,
-    updateChatMessage,
     chatReferences,
     removeChatReference,
     clearChatReferences,
-    addMediaNode,
-    characters,
-    scenes,
-    activeFrameId,
-    activeCharacterId,
-    activeSceneId,
-    getFrameContext,
-    addFrameVersion,
-    updateNodeData,
-    updateCharacter,
-    updateScene,
-    nodes: storeNodes,
     appendCanvasFileMediaVersion,
     setCanvasFileSelectedMediaVersion,
   } = useCanvasStore()
@@ -125,19 +103,16 @@ export default function AIPane({ fileId }: AIPaneProps) {
 
   // 编辑器参数（持久化）
   const {
-    imageModels, videoModels, scriptModels,
+    imageModels, videoModels,
     selectedImageModel, setSelectedImageModel,
     imageRatio, setImageRatio,
     imageResolution, setImageResolution,
-    imageBatch, setImageBatch,
     selectedVideoModel, setSelectedVideoModel,
     videoLength, setVideoLength,
     videoRatio, setVideoRatio,
     videoRefMode, setVideoRefMode,
     videoResolution, setVideoResolution,
     videoCapabilities,
-    selectedScriptModel, setSelectedScriptModel,
-    audioVoice,
     getActiveModel: getActiveModelByMode,
     getModelDisplayName,
     isVideoRefModeAvailable,
@@ -161,48 +136,24 @@ export default function AIPane({ fileId }: AIPaneProps) {
   // 拖拽状态
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // 图片预览
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
   // 弹出面板状态
   const [activePopup, setActivePopup] = useState<string | null>(null)
 
-  // @mention 状态
-  const [mentions, setMentions] = useState<Array<{ type: 'character' | 'scene'; id: string; name: string }>>([])
-  const [showMentionPopup, setShowMentionPopup] = useState(false)
-  const [mentionQuery, setMentionQuery] = useState('')
   const [titleEditing, setTitleEditing] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
   const renameCanvasFile = useCanvasStore((s) => s.renameCanvasFile)
 
-  // 分镜格上下文
-  const frameContext = useMemo(() => {
-    if (!activeFrameId) return null
-    return getFrameContext(activeFrameId)
-  }, [activeFrameId, getFrameContext, characters, scenes])
-
-  // 角色/场景上下文（隐式选中）
-  const activeCharacter = useMemo(() => {
-    if (!activeCharacterId) return null
-    return characters.find((c) => c.id === activeCharacterId) || null
-  }, [activeCharacterId, characters])
-
-  const activeScene = useMemo(() => {
-    if (!activeSceneId) return null
-    return scenes.find((s) => s.id === activeSceneId) || null
-  }, [activeSceneId, scenes])
-
-  // 当前生成目标类型
-  const activeTarget = activeFrameId ? 'frame' : activeCharacterId ? 'character' : activeSceneId ? 'scene' : null
-
-  const isFrameModeUI = !!(activeFrameId && frameContext?.frame && activeMode === 'image')
-  const isCharModeUI = !!(activeCharacterId && activeCharacter && activeMode === 'image')
-  const isSceneModeUI = !!(activeSceneId && activeScene && activeMode === 'image')
   const useDedicatedMediaSession = useMemo(
     () =>
       !!fileId &&
       !!boundFile &&
-      ((boundFile.projectType === 'image' && activeMode === 'image' && !isFrameModeUI && !isCharModeUI && !isSceneModeUI) ||
+      ((boundFile.projectType === 'image' && activeMode === 'image') ||
         (boundFile.projectType === 'video' && activeMode === 'video')),
-    [fileId, boundFile, activeMode, isFrameModeUI, isCharModeUI, isSceneModeUI]
+    [fileId, boundFile, activeMode]
   )
 
   const displayChatMessages = useDedicatedMediaSession
@@ -216,18 +167,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
     if (!ms?.selectedVersionId) return null
     return ms.versions.find((v) => v.id === ms.selectedVersionId) ?? null
   }, [boundFile?.mediaState])
-
-  // @mention 过滤结果
-  const mentionResults = useMemo(() => {
-    const q = mentionQuery.toLowerCase()
-    const charResults = characters
-      .filter((c) => !q || c.name.toLowerCase().includes(q))
-      .map((c) => ({ type: 'character' as const, id: c.id, name: c.name }))
-    const sceneResults = scenes
-      .filter((s) => !q || s.name.toLowerCase().includes(q))
-      .map((s) => ({ type: 'scene' as const, id: s.id, name: s.name }))
-    return [...charResults, ...sceneResults]
-  }, [mentionQuery, characters, scenes])
 
   // 自动调整 textarea 高度
   useEffect(() => {
@@ -255,63 +194,11 @@ export default function AIPane({ fileId }: AIPaneProps) {
     // 组装上下文 prompt
     let assembledPrompt = prompt.trim()
 
-    // @mention 注入：将角色/场景描述拼入 prompt
-    if (mentions.length > 0) {
-      const mentionParts: string[] = []
-      for (const m of mentions) {
-        if (m.type === 'character') {
-          const char = characters.find((c) => c.id === m.id)
-          if (char) mentionParts.push(`[角色 ${char.name}]: ${char.description}`)
-        } else {
-          const sc = scenes.find((s) => s.id === m.id)
-          if (sc) mentionParts.push(`[场景 ${sc.name}]: ${sc.description}`)
-        }
-      }
-      if (mentionParts.length > 0) {
-        assembledPrompt = mentionParts.join('\n') + '\n\n' + assembledPrompt
-      }
-    }
-
-    // 分镜格上下文自动组装
-    const isFrameMode = !!(activeFrameId && frameContext?.frame && activeMode === 'image')
-    if (isFrameMode && frameContext?.frame) {
-      const ctxParts: string[] = []
-      if (frameContext.frame.dialogue) ctxParts.push(`台词: ${frameContext.frame.dialogue}`)
-      if (frameContext.frame.shot) ctxParts.push(`镜头: ${frameContext.frame.shot}`)
-      if (frameContext.frame.description) ctxParts.push(`描述: ${frameContext.frame.description}`)
-      for (const c of frameContext.characters) {
-        ctxParts.push(`角色 ${c.name}: ${c.description}`)
-      }
-      if (frameContext.scene) {
-        ctxParts.push(`场景 ${frameContext.scene.name}: ${frameContext.scene.description}`)
-      }
-      if (ctxParts.length > 0) {
-        assembledPrompt = ctxParts.join('\n') + '\n\n' + assembledPrompt
-      }
-    }
-
-    // 角色上下文自动组装
-    const isCharMode = !!(activeCharacterId && activeCharacter && activeMode === 'image')
-    if (isCharMode && activeCharacter) {
-      const ctxParts: string[] = [`为角色「${activeCharacter.name}」生成参考图`]
-      if (activeCharacter.description) ctxParts.push(`角色描述: ${activeCharacter.description}`)
-      if (activeCharacter.tags.length > 0) ctxParts.push(`特征标签: ${activeCharacter.tags.join(', ')}`)
-      assembledPrompt = ctxParts.join('\n') + '\n\n' + assembledPrompt
-    }
-
-    // 场景上下文自动组装
-    const isSceneMode = !!(activeSceneId && activeScene && activeMode === 'image')
-    if (isSceneMode && activeScene) {
-      const ctxParts: string[] = [`为场景「${activeScene.name}」生成参考图`]
-      if (activeScene.description) ctxParts.push(`场景描述: ${activeScene.description}`)
-      assembledPrompt = ctxParts.join('\n') + '\n\n' + assembledPrompt
-    }
-
     const boundNow = fileId ? useCanvasStore.getState().canvasFiles.find((f) => f.id === fileId) : undefined
     const useDedicatedMediaSessionSend =
       !!fileId &&
       !!boundNow &&
-      ((boundNow.projectType === 'image' && activeMode === 'image' && !isFrameMode && !isCharMode && !isSceneMode) ||
+      ((boundNow.projectType === 'image' && activeMode === 'image') ||
         (boundNow.projectType === 'video' && activeMode === 'video'))
 
     const addMsg = (m: ChatMessage) => {
@@ -357,7 +244,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
     const userMessage: ChatMessage = {
       id: messageId,
       role: 'user',
-      mode: activeMode as 'script' | 'image' | 'video' | 'audio',
+      mode: activeMode,
       content: prompt.trim(),
       references: chatReferences.length > 0 ? [...chatReferences] : undefined,
       referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
@@ -371,7 +258,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
     const currentPrompt = assembledPrompt
     setPrompt('')
     setAttachments([])
-    setMentions([])
 
     if (chatReferences.length > 0) {
       clearChatReferences()
@@ -380,31 +266,8 @@ export default function AIPane({ fileId }: AIPaneProps) {
     setIsSending(true)
     updMsg(messageId, { status: 'generating' })
 
-    // 分镜格模式：标记节点生成中
-    if (isFrameMode && activeFrameId) {
-      updateNodeData(activeFrameId, { status: 'generating' })
-    }
-
     try {
-      if (activeMode === 'script') {
-        const model = getActiveModel()
-        if (!model) throw new Error('没有可用的剧本生成模型，请检查后端服务')
-        const result = await runNode(ak, { type: 'text', prompt: currentPrompt, model })
-        const generatedText = result.outputs.text || ''
-        const nodeId = addMediaNode('text', {
-          label: currentPrompt.slice(0, 20) || '剧本文本',
-          textContent: generatedText,
-          prompt: currentPrompt,
-        })
-        updMsg(messageId, { status: 'completed', resultText: generatedText, resultNodeIds: [nodeId] })
-      } else if (activeMode === 'audio') {
-        await new Promise((r) => setTimeout(r, 1500))
-        const nodeId = addMediaNode('audio', {
-          label: currentPrompt.slice(0, 20) || '生成音频',
-          prompt: currentPrompt,
-        })
-        updMsg(messageId, { status: 'completed', resultText: '音频生成（后端暂无对应模型）', resultNodeIds: [nodeId] })
-      } else if (activeMode === 'image') {
+      if (activeMode === 'image') {
         const model = getActiveModel()
         if (!model) throw new Error('没有可用的图片生成模型，请检查后端服务')
         const result = await runNode(ak, {
@@ -417,23 +280,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
         })
         const contentUrl = result.outputs.content_url || ''
 
-        if (isFrameMode && activeFrameId) {
-          const versionId = `ver_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-          const version: StoryboardVersion = {
-            id: versionId,
-            imageUrl: contentUrl,
-            prompt: currentPrompt,
-            createdAt: Date.now(),
-          }
-          addFrameVersion(activeFrameId, version)
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: `已添加为第${frameContext?.frame?.index || '?'}格新版本` })
-        } else if (isCharMode && activeCharacterId) {
-          updateCharacter(activeCharacterId, { referenceImageUrl: contentUrl })
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: `已设为「${activeCharacter?.name}」的参考图` })
-        } else if (isSceneMode && activeSceneId) {
-          updateScene(activeSceneId, { referenceImageUrl: contentUrl })
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: `已设为「${activeScene?.name}」的参考图` })
-        } else if (useDedicatedMediaSessionSend && fileId) {
+        if (useDedicatedMediaSessionSend && fileId) {
           appendCanvasFileMediaVersion(fileId, { url: contentUrl, prompt: currentPrompt, model })
           updMsg(messageId, {
             status: 'completed',
@@ -441,12 +288,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
             resultText: '已保存为本文件的当前版本（引用与缩略图均指向此版本）',
           })
         } else {
-          const nodeId = addMediaNode('image', {
-            label: currentPrompt.slice(0, 20) || '生成图片',
-            url: contentUrl,
-            prompt: currentPrompt,
-          })
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '图片已生成', resultNodeIds: [nodeId] })
+          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '图片已生成' })
         }
       } else if (activeMode === 'video') {
         const model = getActiveModel()
@@ -472,20 +314,12 @@ export default function AIPane({ fileId }: AIPaneProps) {
             resultText: '已保存为本文件的当前视频版本',
           })
         } else {
-          const nodeId = addMediaNode('video', {
-            label: currentPrompt.slice(0, 20) || '生成视频',
-            url: contentUrl,
-            prompt: currentPrompt,
-          })
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '视频已生成', resultNodeIds: [nodeId] })
+          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '视频已生成' })
         }
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '生成失败'
       updMsg(messageId, { status: 'failed', errorMessage: errorMsg })
-      if (isFrameMode && activeFrameId) {
-        updateNodeData(activeFrameId, { status: 'idle' })
-      }
     } finally {
       setIsSending(false)
     }
@@ -495,10 +329,12 @@ export default function AIPane({ fileId }: AIPaneProps) {
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles: Attachment[] = Array.from(e.target.files).map((file) => ({
+      const imageFiles = Array.from(e.target.files).filter((f) => f.type.startsWith('image/'))
+      if (imageFiles.length === 0) return
+      const newFiles: Attachment[] = imageFiles.map((file) => ({
         type: 'file' as const,
         file,
-        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        previewUrl: URL.createObjectURL(file),
         name: file.name,
       }))
       setAttachments((prev) => {
@@ -533,10 +369,12 @@ export default function AIPane({ fileId }: AIPaneProps) {
     setIsDragOver(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles: Attachment[] = Array.from(e.dataTransfer.files).map((file) => ({
+      const imageFiles = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+      if (imageFiles.length === 0) return
+      const newFiles: Attachment[] = imageFiles.map((file) => ({
         type: 'file' as const,
         file,
-        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        previewUrl: URL.createObjectURL(file),
         name: file.name,
       }))
       setAttachments((prev) => {
@@ -660,41 +498,9 @@ export default function AIPane({ fileId }: AIPaneProps) {
       {/* 根据模式显示不同参数按钮 */}
       {activeMode === 'image' && renderImageParams()}
       {activeMode === 'video' && renderVideoParams()}
-      {activeMode === 'audio' && renderAudioParams()}
-      {activeMode === 'script' && renderScriptParams()}
 
-      {/* 右侧: 生成数量 + 发送按钮 */}
+      {/* 右侧: 发送按钮 */}
       <div className="flex-1" />
-      {activeMode === 'image' && !useDedicatedMediaSession && (
-        <div className="relative">
-          <button
-            onClick={() => togglePopup('batch')}
-            className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary rounded-lg transition-colors"
-          >
-            <Sparkles size={10} />
-            {imageBatch}/张
-          </button>
-          {activePopup === 'batch' && (
-            <>
-              <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
-              <div className="absolute bottom-full right-0 mb-2 min-w-[80px] bg-white rounded-xl border border-apple-border-light shadow-lg overflow-hidden z-[70]">
-                {IMAGE_BATCH_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setImageBatch(opt.value); setActivePopup(null) }}
-                    className={`w-full px-3 py-1.5 text-[11px] text-left flex items-center justify-between transition-colors ${
-                      opt.value === imageBatch ? 'text-brand bg-brand-50' : 'text-apple-text hover:bg-apple-bg-secondary'
-                    }`}
-                  >
-                    {opt.label}
-                    {opt.value === imageBatch && <Check size={10} />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
       {activeMode === 'video' && (
         <div className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] text-apple-text-secondary">
           <Sparkles size={10} />
@@ -811,12 +617,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
                     </button>
                   ))}
                 </div>
-                <button
-                  onClick={() => setActivePopup(null)}
-                  className="w-full py-1.5 text-[11px] font-medium text-brand hover:bg-brand-50 rounded-xl transition-colors"
-                >
-                  确定
-                </button>
               </div>
             </>
           )}
@@ -972,12 +772,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
                     </div>
                   </>
                 )}
-                <button
-                  onClick={() => setActivePopup(null)}
-                  className="w-full mt-3 py-1.5 text-[11px] font-medium text-brand hover:bg-brand-50 rounded-xl transition-colors"
-                >
-                  确定
-                </button>
               </div>
             </>
           )}
@@ -1023,81 +817,13 @@ export default function AIPane({ fileId }: AIPaneProps) {
     )
   }
 
-  // 音频模式参数
-  const renderAudioParams = () => (
-    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-apple-text-secondary border border-apple-border-light/60">
-      <Music size={10} className="text-brand" />
-      {audioVoice}
-    </span>
-  )
-
-  // 剧本模式参数
-  const renderScriptParams = () => (
-    <>
-      <div className="relative">
-        <button
-          onClick={() => togglePopup('scriptModel')}
-          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors"
-        >
-          <div className="w-3.5 h-3.5 rounded bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
-            <span className="text-[7px] text-white font-bold">G</span>
-          </div>
-          {getModelDisplayName(activeMode)}
-        </button>
-        {activePopup === 'scriptModel' && (
-          <>
-            <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
-            <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl border border-apple-border-light shadow-xl overflow-hidden z-[70]">
-              <div className="px-3 py-1.5 text-[10px] text-apple-text-tertiary">选择模型</div>
-              {scriptModels.length > 0 ? scriptModels.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => { setSelectedScriptModel(m.name); setActivePopup(null) }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
-                    selectedScriptModel === m.name
-                      ? 'text-brand bg-brand-50'
-                      : 'text-apple-text hover:bg-apple-bg-secondary'
-                  }`}
-                >
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[8px] text-white font-bold">G</span>
-                  </div>
-                  <div className="text-left min-w-0">
-                    <div className="text-xs font-medium truncate">{m.name}</div>
-                  </div>
-                  {selectedScriptModel === m.name && <Check size={12} className="ml-auto text-brand flex-shrink-0" />}
-                </button>
-              )) : (
-                <div className="px-3 py-3 text-[11px] text-apple-text-tertiary text-center">无可用模型</div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-      <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors">
-        <BrainCircuit size={10} />
-        深度思考
-      </button>
-      <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-apple-text-secondary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors">
-        <Search size={10} />
-        搜索
-      </button>
-    </>
-  )
-
   // 渲染占位文本
   const renderPlaceholder = () => {
-    if (activeCharacter && activeMode === 'image') return `描述「${activeCharacter.name}」的形象...`
-    if (activeScene && activeMode === 'image') return `描述「${activeScene.name}」的场景画面...`
     switch (activeMode) {
       case 'image':
         return '请描述你想生成的图片'
       case 'video':
         return '描述你想创作的视频内容...'
-      case 'audio':
-        return '输入你想生成的说话内容...'
-      case 'script':
-        return '输入剧本大纲或创意...'
     }
   }
 
@@ -1107,21 +833,37 @@ export default function AIPane({ fileId }: AIPaneProps) {
     return (
       <div className="mt-2 p-2.5 bg-apple-bg-secondary rounded-xl border border-apple-border-light">
         {item.resultUrl && item.mode === 'image' && (
-          <img src={item.resultUrl} alt="" className="w-full max-w-[200px] rounded-xl mb-2" />
+          <img
+            src={item.resultUrl}
+            alt=""
+            className="w-full max-w-[200px] rounded-xl mb-2 cursor-pointer"
+            draggable
+            onClick={() => setPreviewImage(item.resultUrl!)}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/json', JSON.stringify({
+                type: 'generated-content',
+                url: item.resultUrl,
+                name: item.content?.slice(0, 20) || '生成图片',
+              }))
+            }}
+          />
         )}
         {item.resultUrl && item.mode === 'video' && (
-          <video src={item.resultUrl} controls className="w-full max-w-[240px] rounded-xl mb-2" />
-        )}
-        {item.resultUrl && item.mode === 'audio' && (
-          <audio src={item.resultUrl} controls className="w-full mb-2" />
-        )}
-        {item.mode === 'script' && item.resultText ? (
-          <div className="text-xs text-apple-text leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-2">
-            {item.resultText}
+          <div
+            className="w-full max-w-[240px] mb-2"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/json', JSON.stringify({
+                type: 'generated-content',
+                url: item.resultUrl,
+                name: item.content?.slice(0, 20) || '生成视频',
+              }))
+            }}
+          >
+            <video src={item.resultUrl} controls className="w-full rounded-xl" />
           </div>
-        ) : (
-          <p className="text-xs text-apple-text-secondary">{item.resultText || '已生成到画布'}</p>
         )}
+        <p className="text-xs text-apple-text-secondary">{item.resultText || '已生成'}</p>
         <div className="flex items-center gap-1.5 mt-2">
           <button className="px-2 py-1 text-[11px] bg-white text-apple-text-secondary rounded-lg border border-apple-border-light hover:bg-apple-bg-secondary transition-colors">
             重新编辑
@@ -1135,6 +877,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
   }
 
   return (
+    <>
     <div className="flex flex-col h-full w-full bg-white">
       {/* 头部 */}
       <div className="flex items-center px-4 py-3 flex-shrink-0 border-b border-apple-border-light min-h-[44px]">
@@ -1248,7 +991,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
         ) : (
           <div className="space-y-3">
             {displayChatMessages.map((item) => {
-              const Icon = modeConfig[item.mode as GenerateMode]?.icon || FileText
+              const Icon = modeConfig[item.mode as GenerateMode]?.icon || Image
               return (
                 <div
                   key={item.id}
@@ -1271,8 +1014,19 @@ export default function AIPane({ fileId }: AIPaneProps) {
                           <span className="text-[9px] text-apple-text-tertiary">
                             {item.referenceThumbLabels?.[ri] ?? `参考${ri + 1}`}
                           </span>
-                          <div className="w-14 h-14 rounded-lg overflow-hidden border border-apple-border-light bg-white">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          <div
+                            className="w-14 h-14 rounded-lg overflow-hidden border border-apple-border-light bg-white cursor-pointer"
+                            draggable
+                            onClick={() => setPreviewImage(url)}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('application/json', JSON.stringify({
+                                type: 'generated-content',
+                                url,
+                                name: item.referenceThumbLabels?.[ri] ?? `参考${ri + 1}`,
+                              }))
+                            }}
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
                           </div>
                         </div>
                       ))}
@@ -1338,125 +1092,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
                 </button>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* @mention chips */}
-        {mentions.length > 0 && (
-          <div className="flex items-center gap-1.5 mb-2 flex-wrap px-1">
-            {mentions.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center gap-1 px-2 py-1 bg-brand-50 rounded-lg border border-brand/20 text-[10px] text-brand group"
-              >
-                {m.type === 'character' ? <User size={10} /> : <MapPin size={10} />}
-                <span>{m.name}</span>
-                <button
-                  onClick={() => setMentions((prev) => prev.filter((x) => x.id !== m.id))}
-                  className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 分镜格上下文自动组装区 */}
-        {frameContext?.frame && (
-          <div className="mb-2 px-3 py-2.5 bg-apple-bg-secondary rounded-xl border border-apple-border-light space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-apple-text">
-              <Film size={12} className="text-brand" />
-              <span>第{frameContext.frame.index}格</span>
-              {frameContext.frame.shot && (
-                <span className="px-1.5 py-0.5 bg-white rounded text-[10px] text-apple-text-secondary border border-apple-border-light/50">{frameContext.frame.shot}</span>
-              )}
-            </div>
-            {frameContext.frame.dialogue && (
-              <p className="text-[11px] text-apple-text-secondary leading-relaxed">「{frameContext.frame.dialogue}」</p>
-            )}
-            {frameContext.characters.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[10px] text-apple-text-tertiary">角色:</span>
-                {frameContext.characters.map((c) => (
-                  <span key={c.id} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded text-[10px] text-brand border border-brand/15">
-                    <User size={9} />
-                    {c.name}
-                  </span>
-                ))}
-              </div>
-            )}
-            {frameContext.scene && (
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] text-apple-text-tertiary">场景:</span>
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded text-[10px] text-emerald-600 border border-emerald-200">
-                  <MapPin size={9} />
-                  {frameContext.scene.name}
-                </span>
-              </div>
-            )}
-            <p className="text-[10px] text-apple-text-tertiary italic">点击生成将自动组装上下文</p>
-          </div>
-        )}
-
-        {/* 角色上下文自动组装区 */}
-        {activeCharacter && !frameContext?.frame && (
-          <div className="mb-2 px-3 py-2.5 bg-blue-50/50 rounded-xl border border-blue-200/40 space-y-2">
-            <div className="flex items-center gap-2 text-[11px] font-medium text-apple-text">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 overflow-hidden">
-                {activeCharacter.referenceImageUrl ? (
-                  <img src={activeCharacter.referenceImageUrl} alt={activeCharacter.name} className="w-full h-full object-cover" />
-                ) : (
-                  <User size={14} className="text-blue-400" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-brand font-medium">{activeCharacter.name}</span>
-                  <span className="text-[10px] text-apple-text-tertiary">角色</span>
-                </div>
-                {activeCharacter.description && (
-                  <p className="text-[10px] text-apple-text-secondary line-clamp-1 mt-0.5">{activeCharacter.description}</p>
-                )}
-              </div>
-            </div>
-            {activeCharacter.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {activeCharacter.tags.map((tag) => (
-                  <span key={tag} className="px-1.5 py-0.5 bg-white/80 text-blue-500 text-[10px] rounded border border-blue-100">{tag}</span>
-                ))}
-              </div>
-            )}
-            <p className="text-[10px] text-blue-400 italic">
-              {activeCharacter.referenceImageUrl ? '生成将更新此角色的参考图' : '生成将为此角色创建参考图'}
-            </p>
-          </div>
-        )}
-
-        {/* 场景上下文自动组装区 */}
-        {activeScene && !frameContext?.frame && !activeCharacter && (
-          <div className="mb-2 px-3 py-2.5 bg-emerald-50/50 rounded-xl border border-emerald-200/40 space-y-2">
-            <div className="flex items-center gap-2 text-[11px] font-medium text-apple-text">
-              <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center shrink-0 overflow-hidden">
-                {activeScene.referenceImageUrl ? (
-                  <img src={activeScene.referenceImageUrl} alt={activeScene.name} className="w-full h-full object-cover" />
-                ) : (
-                  <MapPin size={14} className="text-green-400" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-emerald-600 font-medium">{activeScene.name}</span>
-                  <span className="text-[10px] text-apple-text-tertiary">场景</span>
-                </div>
-                {activeScene.description && (
-                  <p className="text-[10px] text-apple-text-secondary line-clamp-1 mt-0.5">{activeScene.description}</p>
-                )}
-              </div>
-            </div>
-            <p className="text-[10px] text-emerald-400 italic">
-              {activeScene.referenceImageUrl ? '生成将更新此场景的参考图' : '生成将为此场景创建参考图'}
-            </p>
           </div>
         )}
 
@@ -1534,7 +1169,10 @@ export default function AIPane({ fileId }: AIPaneProps) {
                 {attachments.map((att, index) => (
                   <div key={index} className="relative group/att">
                     {att.previewUrl ? (
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-apple-border-light">
+                      <div
+                        className="w-12 h-12 rounded-xl overflow-hidden border border-apple-border-light cursor-pointer"
+                        onClick={() => att.previewUrl && setPreviewImage(att.previewUrl)}
+                      >
                         <img src={att.previewUrl} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
@@ -1562,7 +1200,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
                     type="file"
                     className="hidden"
                     multiple
-                    accept="image/*,video/*,audio/*"
+                    accept="image/*"
                     onChange={handleFileSelect}
                   />
                 </label>
@@ -1577,7 +1215,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
                     type="file"
                     className="hidden"
                     multiple
-                    accept="image/*,video/*,audio/*"
+                    accept="image/*"
                     onChange={handleFileSelect}
                   />
                 </label>
@@ -1587,76 +1225,14 @@ export default function AIPane({ fileId }: AIPaneProps) {
                 <textarea
                   ref={textareaRef}
                   value={prompt}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setPrompt(val)
-                    const cursorPos = e.target.selectionStart
-                    const textBeforeCursor = val.slice(0, cursorPos)
-                    const atMatch = textBeforeCursor.match(/@([^\s@]*)$/)
-                    if (atMatch) {
-                      setShowMentionPopup(true)
-                      setMentionQuery(atMatch[1])
-                    } else {
-                      setShowMentionPopup(false)
-                      setMentionQuery('')
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (showMentionPopup && e.key === 'Escape') {
-                      e.preventDefault()
-                      setShowMentionPopup(false)
-                      return
-                    }
-                    handleKeyDown(e)
-                  }}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder={renderPlaceholder()}
                   rows={1}
                   className="w-full bg-transparent text-sm text-apple-text placeholder-apple-text-tertiary/60 resize-none outline-none leading-relaxed py-2 min-h-[36px] max-h-[100px]"
                   disabled={isSending}
                   style={{ overflow: 'auto' }}
                 />
-
-                {showMentionPopup && mentionResults.length > 0 && (
-                  <>
-                    <div className="fixed inset-0 z-[55]" onClick={() => setShowMentionPopup(false)} />
-                    <div className="absolute bottom-full left-0 mb-1 w-56 max-h-48 overflow-y-auto bg-white rounded-xl border border-apple-border-light shadow-xl z-[60]">
-                      <div className="px-3 py-1.5 text-[10px] text-apple-text-tertiary border-b border-apple-border-light/50">
-                        选择角色或场景
-                      </div>
-                      {mentionResults.map((item) => (
-                        <button
-                          key={`${item.type}-${item.id}`}
-                          onClick={() => {
-                            const cursorPos = textareaRef.current?.selectionStart || prompt.length
-                            const textBefore = prompt.slice(0, cursorPos)
-                            const textAfter = prompt.slice(cursorPos)
-                            const atIdx = textBefore.lastIndexOf('@')
-                            const newText = textBefore.slice(0, atIdx) + `@${item.name} ` + textAfter
-                            setPrompt(newText)
-                            setMentions((prev) => {
-                              if (prev.some((m) => m.id === item.id)) return prev
-                              return [...prev, item]
-                            })
-                            setShowMentionPopup(false)
-                            setMentionQuery('')
-                            textareaRef.current?.focus()
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-apple-text hover:bg-apple-bg-secondary transition-colors"
-                        >
-                          {item.type === 'character' ? (
-                            <User size={12} className="text-brand flex-shrink-0" />
-                          ) : (
-                            <MapPin size={12} className="text-emerald-500 flex-shrink-0" />
-                          )}
-                          <span className="truncate">{item.name}</span>
-                          <span className="text-[10px] text-apple-text-tertiary ml-auto">
-                            {item.type === 'character' ? '角色' : '场景'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -1665,5 +1241,27 @@ export default function AIPane({ fileId }: AIPaneProps) {
         </div>
       </div>
     </div>
+
+    {/* 图片全屏预览 */}
+    {previewImage && (
+      <div
+        className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center cursor-pointer"
+        onClick={() => setPreviewImage(null)}
+      >
+        <img
+          src={previewImage}
+          alt="预览"
+          className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <button
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          onClick={() => setPreviewImage(null)}
+        >
+          <X size={16} className="text-white" />
+        </button>
+      </div>
+    )}
+  </>
   )
 }
