@@ -56,7 +56,7 @@ export interface AssetPayload {
   id: string
   name: string
   url: string
-  type: 'image' | 'video' | 'text' | 'audio'
+  type: 'image' | 'video' | 'text'
   source: 'generate' | 'upload' | 'canvas'
   textContent?: string
   createdAt: number
@@ -110,7 +110,7 @@ export async function deleteAssetAPI(id: string): Promise<void> {
 export interface CanvasFilePayload {
   id: string
   name: string
-  projectType?: 'canvas' | 'script' | 'image' | 'video' | 'audio'
+  projectType?: 'image' | 'video'
   folderId?: string
   mediaState?: CanvasFile['mediaState']
   aiSession?: CanvasFile['aiSession']
@@ -205,7 +205,7 @@ export async function deleteCanvasFileAPI(id: string): Promise<void> {
 
 export interface GenerateHistoryPayload {
   id: string
-  mode: 'script' | 'image' | 'video' | 'audio'
+  mode: 'image' | 'video'
   prompt: string
   result?: string
   resultUrl?: string

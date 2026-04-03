@@ -39,39 +39,6 @@ body {
   background: #aeaeb2;
 }
 
-/* React Flow 自定义样式 */
-.react-flow__node {
-  cursor: default;
-}
-
-.react-flow__handle {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.react-flow__node:hover .react-flow__handle,
-.react-flow__node.selected .react-flow__handle {
-  opacity: 1;
-}
-
-.react-flow__edge-path {
-  cursor: pointer;
-}
-
-.react-flow__minimap {
-  border-radius: 8px !important;
-}
-
-.react-flow__attribution {
-  display: none !important;
-}
-
-/* React Flow 画布编辑器模式 - 保持深色 */
-.canvas-editor-mode {
-  background-color: #0a0a0a;
-  color: #ffffff;
-}
-
 .canvas-editor-mode ::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
@@ -82,75 +49,6 @@ body {
 
 .canvas-editor-mode ::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* ===== Obsidian 风格工作区组件 ===== */
-
-/* 标题栏 — 已移除 */
-.titlebar {
-  display: none;
-}
-
-/* Ribbon — 保留但不再默认显示 */
-.ribbon {
-  width: 44px;
-  background: #F6F2F6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  user-select: none;
-  padding-top: 4px;
-}
-
-.ribbon-top-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 0 8px;
-  margin-bottom: 4px;
-  width: 100%;
-}
-
-.ribbon-btn {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: #605E63;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-}
-
-.ribbon-btn:hover {
-  color: #333236;
-  background: #EAE7EC;
-}
-
-.ribbon-btn-active {
-  color: #1D51DF;
-  background: rgba(70, 112, 254, 0.1);
-}
-
-.ribbon-btn-active:hover {
-  color: #0043D1;
-  background: rgba(70, 112, 254, 0.15);
-}
-
-.ribbon-indicator {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  border-radius: 0 2px 2px 0;
-  background: #1D51DF;
 }
 
 /* Side Panel — 侧面板容器 (Digital Atelier) */

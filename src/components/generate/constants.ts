@@ -1,18 +1,16 @@
-import { FileText, Image, Video, Music } from 'lucide-react'
+import { Image, Video } from 'lucide-react'
 import type { ModelInfo } from '../../store/types'
 
 // 生成模式类型
-export type GenerateMode = 'script' | 'image' | 'video' | 'audio'
+export type GenerateMode = 'image' | 'video'
 
 // 模式配置
 export const modeConfig: Record<
   GenerateMode,
-  { label: string; icon: typeof FileText; color: string; apiType: 'text' | 'image' | 'video' | 'audio'; ability?: ModelInfo['ability'] }
+  { label: string; icon: typeof Image; color: string; apiType: 'image' | 'video'; ability?: ModelInfo['ability'] }
 > = {
-  script: { label: '剧本生成', icon: FileText, color: '#2B5AE8', apiType: 'text' },
   image: { label: '图片生成', icon: Image, color: '#2B5AE8', apiType: 'image', ability: 'text2img' },
   video: { label: '视频生成', icon: Video, color: '#2B5AE8', apiType: 'video', ability: 'text2video' },
-  audio: { label: '音频生成', icon: Music, color: '#2B5AE8', apiType: 'audio' },
 }
 
 // 图片尺寸选项
@@ -38,14 +36,6 @@ export const IMAGE_RATIO_OPTIONS = [
 export const IMAGE_RESOLUTION_OPTIONS = [
   { label: '高清 2K', value: '2K' },
   { label: '超清 4K', value: '4K' },
-]
-
-// 图片生成数量选项
-export const IMAGE_BATCH_OPTIONS = [
-  { label: '1 / 张', value: 1 },
-  { label: '2 / 张', value: 2 },
-  { label: '3 / 张', value: 3 },
-  { label: '4 / 张', value: 4 },
 ]
 
 // 视频时长选项

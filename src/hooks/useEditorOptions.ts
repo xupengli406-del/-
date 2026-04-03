@@ -16,9 +16,7 @@ export function useEditorOptions() {
 
   const imagePref = useEditorPreferencesStore((s) => s.image)
   const videoPref = useEditorPreferencesStore((s) => s.video)
-  const scriptPref = useEditorPreferencesStore((s) => s.script)
-  const audioPref = useEditorPreferencesStore((s) => s.audio)
-  const { updateImagePref, updateVideoPref, updateScriptPref, updateAudioPref } =
+  const { updateImagePref, updateVideoPref } =
     useEditorPreferencesStore()
 
   const imageModels = useMemo(
@@ -27,10 +25,6 @@ export function useEditorOptions() {
   )
   const videoModels = useMemo(
     () => availableModels.filter((m) => m.ability === 'text2video'),
-    [availableModels],
-  )
-  const scriptModels = useMemo(
-    () => availableModels.filter((m) => m.ability === 'chat_completion'),
     [availableModels],
   )
 
@@ -46,10 +40,6 @@ export function useEditorOptions() {
   const selectedVideoModel = useMemo(
     () => resolveModel(videoPref.model, videoModels),
     [videoPref.model, videoModels],
-  )
-  const selectedScriptModel = useMemo(
-    () => resolveModel(scriptPref.model, scriptModels),
-    [scriptPref.model, scriptModels],
   )
 
   // 当前视频模型的能力
@@ -146,7 +136,6 @@ export function useEditorOptions() {
   const getActiveModel = (mode: GenerateMode): string => {
     if (mode === 'image') return selectedImageModel
     if (mode === 'video') return selectedVideoModel
-    if (mode === 'script') return selectedScriptModel
     return ''
   }
 
@@ -159,13 +148,10 @@ export function useEditorOptions() {
   return {
     imageModels,
     videoModels,
-    scriptModels,
 
     selectedImageModel,
     imageRatio: imagePref.ratio,
     imageResolution: imagePref.resolution,
-    imageBatch: imagePref.batch,
-
     selectedVideoModel,
     videoLength,
     videoRatio: videoPref.ratio,
@@ -173,22 +159,16 @@ export function useEditorOptions() {
     videoResolution,
     videoCapabilities,
 
-    selectedScriptModel,
-    audioVoice: audioPref.voice,
-
     // 设置器
     setSelectedImageModel: (v: string) => updateImagePref({ model: v }),
     setImageRatio: (v: string) => updateImagePref({ ratio: v }),
     setImageResolution: (v: string) => updateImagePref({ resolution: v }),
-    setImageBatch: (v: number) => updateImagePref({ batch: v }),
 
     setSelectedVideoModel,
     setVideoLength,
     setVideoRatio: (v: string) => updateVideoPref({ ratio: v }),
     setVideoRefMode,
     setVideoResolution: (v: string) => updateVideoPref({ resolution: v }),
-
-    setSelectedScriptModel: (v: string) => updateScriptPref({ model: v }),
 
     // 工具
     getActiveModel,

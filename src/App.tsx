@@ -2,6 +2,7 @@ import { Component, useEffect, useState, type ReactNode, type ErrorInfo } from '
 import WorkspaceShell from './components/workspace/WorkspaceShell'
 import { useCanvasStore } from './store/canvasStore'
 import { useWorkspaceStore } from './store/workspaceStore'
+import { useAccountStore } from './store/accountStore'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -30,20 +31,21 @@ function MainLayout() {
     const init = async () => {
       await initializeFromBackend()
 
-      // URL 参数兼容: ?mode=canvas&project=xxx 或 ?docType=imageGeneration&docId=xxx
-      const params = new URLSearchParams(window.location.search)
-      if (params.get('mode') === 'canvas') {
-        const projectId = params.get('project')
-        if (projectId) {
-          loadCanvasFile(projectId)
-          openDocument({ type: 'canvas', id: projectId })
+      // 暴露 stores 供 Playwright 自动化脚本使用（仅开发环境）
+      if (import.meta.env.DEV) {
+        ;(window as any).__stores = {
+          account: useAccountStore,
+          workspace: useWorkspaceStore,
+          canvas: useCanvasStore,
         }
       }
 
+      // URL 参数兼容: ?docType=imageGeneration&docId=xxx
+      const params = new URLSearchParams(window.location.search)
       const docType = params.get('docType')
       const docId = params.get('docId')
       if (docType && docId) {
-        const allowedTypes = new Set(['canvas', 'script', 'character', 'scene', 'storyboardFrame', 'media', 'imageGeneration', 'videoGeneration', 'welcome'])
+        const allowedTypes = new Set(['imageGeneration', 'videoGeneration', 'welcome'])
         if (allowedTypes.has(docType)) {
           loadCanvasFile(docId)
           openDocument({ type: docType as any, id: docId })

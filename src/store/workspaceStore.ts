@@ -18,7 +18,7 @@ interface WorkspaceState {
   paneLayout: PaneNode
   // 当前聚焦的 pane id
   activePaneId: string
-  // 侧边栏面板（null = 侧面板折叠，但 Ribbon 始终可见）
+  // 侧边栏面板（null = 侧面板折叠）
   activeSidePanel: SidePanelType | null
   // 文件树展开状态
   fileTreeExpandedFolders: Set<string>
