@@ -131,6 +131,18 @@ class NodeService:
             exec_kwargs["response_format"] = request.response_format
         if request.length is not None:
             exec_kwargs["duration"] = request.length
+        if request.image:
+            exec_kwargs["image"] = request.image
+        if request.optimize_prompt_options:
+            exec_kwargs["optimize_prompt_options"] = request.optimize_prompt_options
+        if request.sequential_image_generation:
+            exec_kwargs["sequential_image_generation"] = request.sequential_image_generation
+        if request.sequential_image_generation_options:
+            exec_kwargs["sequential_image_generation_options"] = request.sequential_image_generation_options
+        if request.output_format:
+            exec_kwargs["output_format"] = request.output_format
+        if request.stream is not None:
+            exec_kwargs["stream"] = request.stream
 
         # Execute the model
         result = await executor.execute(

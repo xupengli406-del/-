@@ -5,7 +5,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { DocumentId, DocumentType } from './workspaceTypes'
-import type { useCanvasStore } from './canvasStore'
+import type { useProjectStore } from './projectStore'
 
 let paneCounter = 0
 
@@ -27,18 +27,18 @@ export function getDocumentIcon(docId: DocumentId): LucideIcon {
   return iconMap[docId.type] || FileText
 }
 
-type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>
+type ProjectStoreState = ReturnType<typeof useProjectStore.getState>
 
-export function getDocumentLabel(docId: DocumentId, state: CanvasStoreState): string {
+export function getDocumentLabel(docId: DocumentId, state: ProjectStoreState): string {
   switch (docId.type) {
     case 'welcome':
       return '新标签页'
     case 'imageGeneration': {
-      const file = state.canvasFiles.find((f) => f.id === docId.id)
+      const file = state.projectFiles.find((f) => f.id === docId.id)
       return file?.name || '分镜图片生成'
     }
     case 'videoGeneration': {
-      const file = state.canvasFiles.find((f) => f.id === docId.id)
+      const file = state.projectFiles.find((f) => f.id === docId.id)
       return file?.name || '视频生成'
     }
     default:

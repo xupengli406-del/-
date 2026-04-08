@@ -149,6 +149,12 @@ class NodeRunRequest(BaseModel):
     length: Optional[int] = Field(None, ge=1, description="Length in seconds for audio/video")
     watermark: Optional[bool] = Field(None, description="Add watermark to output")
     response_format: Optional[str] = Field("url", description="Output format: 'url' or 'b64_json'")
+    image: Optional[list[str]] = Field(None, description="Reference image URLs (up to 14 for Seedream 4.0+)")
+    optimize_prompt_options: Optional[dict] = Field(None, description="Prompt optimization options, e.g. {'mode': 'standard'}")
+    sequential_image_generation: Optional[str] = Field(None, description="Sequential image generation: 'auto' or 'disabled'")
+    sequential_image_generation_options: Optional[dict] = Field(None, description="Sequential generation options, e.g. {'max_images': 4}")
+    output_format: Optional[str] = Field(None, description="Output format: 'jpeg' or 'png' (only Seedream 5.0 lite)")
+    stream: Optional[bool] = Field(None, description="Enable streaming output for progressive image delivery")
 
     model_config = {"populate_by_name": True}
 

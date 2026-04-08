@@ -83,7 +83,7 @@ class SyncHttpExecutor(BaseExecutor):
             payload["size"] = size
 
         # Add any additional kwargs
-        for key in ["watermark", "image"]:
+        for key in ["watermark", "image", "optimize_prompt_options", "sequential_image_generation", "sequential_image_generation_options", "output_format", "stream"]:
             if key in kwargs:
                 payload[key] = kwargs[key]
 

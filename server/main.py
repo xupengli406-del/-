@@ -360,16 +360,13 @@ async def delete_asset(asset_id: str):
     return {"message": "已删除", "id": asset_id}
 
 
-# ===== 画布文件持久化 API =====
+# ===== 项目文件持久化 API =====
 
 class CanvasFileCreateRequest(BaseModel):
-    """创建/保存画布文件"""
+    """创建/保存项目文件（保留端点名兼容已部署客户端）"""
     id: str
     name: str
-    snapshot: dict  # { nodes: [], edges: [] }
     thumbnailUrl: str = ""
-    nodeCount: int = 0
-    edgeCount: int = 0
     createdAt: float
     updatedAt: float
     projectType: Optional[str] = None
@@ -380,13 +377,13 @@ class CanvasFileCreateRequest(BaseModel):
 
 @app.get("/api/canvas-files")
 async def get_canvas_files():
-    """获取所有画布文件"""
+    """获取所有项目文件"""
     return _read_json(CANVAS_FILES_FILE)
 
 
 @app.post("/api/canvas-files")
 async def create_canvas_file(canvas_file: CanvasFileCreateRequest):
-    """创建画布文件"""
+    """创建项目文件"""
     files = _read_json(CANVAS_FILES_FILE)
     file_dict = canvas_file.model_dump()
     files.append(file_dict)
@@ -396,7 +393,7 @@ async def create_canvas_file(canvas_file: CanvasFileCreateRequest):
 
 @app.put("/api/canvas-files/{file_id}")
 async def update_canvas_file(file_id: str, canvas_file: CanvasFileCreateRequest):
-    """更新画布文件"""
+    """更新项目文件"""
     files = _read_json(CANVAS_FILES_FILE)
     updated = False
     for i, f in enumerate(files):
@@ -412,7 +409,7 @@ async def update_canvas_file(file_id: str, canvas_file: CanvasFileCreateRequest)
 
 @app.delete("/api/canvas-files/{file_id}")
 async def delete_canvas_file(file_id: str):
-    """删除画布文件"""
+    """删除项目文件"""
     files = _read_json(CANVAS_FILES_FILE)
     files = [f for f in files if f.get("id") != file_id]
     _write_json(CANVAS_FILES_FILE, files)

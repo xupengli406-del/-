@@ -1,4 +1,4 @@
-// ===== 类型定义（画布/分镜系统已移除，仅保留文件管理+生成+版本+对话） =====
+// ===== 类型定义（项目文件管理 + AI 生成 + 版本 + 对话） =====
 
 // 对话生成模式（仅保留图片和视频）
 export type GenerateMode = 'image' | 'video'
@@ -10,8 +10,9 @@ export interface ChatMessage {
   mode: GenerateMode
   content: string
   resultUrl?: string
+  /** 组图模式：多张结果图 URL */
+  resultUrls?: string[]
   resultText?: string
-  resultNodeIds?: string[]
   references?: ChatReference[]
   /** 本地上传/解析后的参考图 URL（传给模型） */
   referenceImageUrls?: string[]
@@ -24,29 +25,13 @@ export interface ChatMessage {
   createdAt: number
 }
 
-// 画布节点引用（添加到对话时使用）
+// 对话引用（参考图添加到对话时使用）
 export interface ChatReference {
   nodeId: string
   nodeType: string
   previewUrl?: string
   previewText?: string
   label?: string
-}
-
-// 素材项
-export interface AssetItem {
-  id: string
-  name: string
-  url: string
-  type: 'image' | 'video' | 'text' | 'audio'
-  createdAt: number
-  // 来源标识
-  source: 'generate' | 'upload' | 'canvas'
-  // 文本类型的内容存储
-  textContent?: string
-  // 遗留兼容（画布内部节点关联，不再用于资产-节点双向链接）
-  nodeId?: string
-  nodeType?: 'textNode' | 'imageNode' | 'videoNode' | 'audioNode'
 }
 
 // 模型信息（从后端 /model/list 获取）
@@ -60,18 +45,11 @@ export interface ModelInfo {
   costRate: number
 }
 
-// 资产排序方式
-export type AssetSortBy = 'createdAt' | 'name' | 'type'
-export type AssetSortOrder = 'asc' | 'desc'
-
-// 资产视图模式
-export type AssetViewMode = 'grid' | 'list'
-
-// 画布文件项目类型（仅保留 image 和 video）
-export type CanvasFileProjectType = 'image' | 'video'
+// 项目文件类型
+export type ProjectFileType = 'image' | 'video'
 
 /** 单个图片/视频文件的生成版本 */
-export interface CanvasFileMediaVersion {
+export interface ProjectFileMediaVersion {
   id: string
   url: string
   prompt: string
@@ -79,12 +57,12 @@ export interface CanvasFileMediaVersion {
   model?: string
 }
 
-export interface CanvasFileMediaState {
-  versions: CanvasFileMediaVersion[]
+export interface ProjectFileMediaState {
+  versions: ProjectFileMediaVersion[]
   selectedVersionId: string | null
 }
 
-export interface CanvasFileAISession {
+export interface ProjectFileAISession {
   messages: ChatMessage[]
 }
 
@@ -95,24 +73,69 @@ export interface CustomFolder {
   parentId?: string | null  // 父文件夹 ID，null 或 undefined 表示顶层
 }
 
-export interface CanvasFile {
+export interface ProjectFile {
   id: string
   name: string
-  // 项目类型
-  projectType?: CanvasFileProjectType
-  // 所属自定义文件夹 ID（undefined 表示不在任何自定义文件夹中）
+  projectType?: ProjectFileType
+  /** 所属自定义文件夹 ID */
   folderId?: string
-  mediaState?: CanvasFileMediaState
-  aiSession?: CanvasFileAISession
-  // 画布快照数据（保留字段以兼容已持久化的旧数据）
-  snapshot: {
-    nodes: any[]
-    edges: any[]
-  }
-  // 缩略图
+  mediaState?: ProjectFileMediaState
+  aiSession?: ProjectFileAISession
   thumbnailUrl: string
-  nodeCount: number
-  edgeCount: number
   createdAt: number
   updatedAt: number
+}
+
+// ===== 向后兼容别名（避免一次性改动太多外部引用） =====
+/** @deprecated 使用 ProjectFileType */
+export type CanvasFileProjectType = ProjectFileType
+/** @deprecated 使用 ProjectFileMediaVersion */
+export type CanvasFileMediaVersion = ProjectFileMediaVersion
+/** @deprecated 使用 ProjectFileMediaState */
+export type CanvasFileMediaState = ProjectFileMediaState
+/** @deprecated 使用 ProjectFileAISession */
+export type CanvasFileAISession = ProjectFileAISession
+/** @deprecated 使用 ProjectFile */
+export type CanvasFile = ProjectFile
+
+// ===== 账户余额相关类型 =====
+
+export interface BalanceInfo {
+  total: number        // 总余额(元)
+  subscription: number // 订阅赠送余额
+  recharged: number    // 充值余额
+  gifted: number       // 赠送余额
+}
+
+export type BalanceRecordType = 'consume' | 'acquire'
+
+export interface BalanceRecord {
+  id: string
+  type: BalanceRecordType
+  event: string
+  amount: number       // 正=获取(元)，负=消耗(元)
+  timestamp: number
+  model?: string
+}
+
+// ===== 存储空间相关类型 =====
+
+export interface StorageQuota {
+  used: number         // 已用字节数
+  total: number        // 总配额字节数
+  breakdown: {
+    images: number
+    videos: number
+    uploads: number
+  }
+}
+
+export interface StorageAsset {
+  id: string
+  name: string
+  type: 'image' | 'video' | 'upload'
+  size: number         // 字节数
+  url: string
+  thumbnailUrl?: string
+  createdAt: number
 }

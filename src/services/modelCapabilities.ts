@@ -78,8 +78,46 @@ export function isRefModeAvailable(
 /** 图片参考：多数模型支持多图，默认 4 */
 export function getImageReferenceMax(modelId: string, modelName: string): number {
   const s = norm(`${modelId} ${modelName}`)
+  if (s.includes('seedream')) return 14     // Seedream 4.0-5.0 支持最多 14 张
   if (s.includes('seedance1.5') || s.includes('seedance_1.5')) return 5
   return 4
+}
+
+// ===== 图片模型能力 =====
+
+export interface ImageResolutionOption {
+  label: string
+  value: string
+}
+
+/** 按模型返回支持的图片分辨率列表 */
+export function getImageResolutionOptions(modelId: string, modelName: string): ImageResolutionOption[] {
+  const s = norm(`${modelId} ${modelName}`)
+  if (s.includes('seedream5')) {
+    return [
+      { label: '高清 2K', value: '2K' },
+      { label: '超清 3K', value: '3K' },
+    ]
+  }
+  if (s.includes('seedream4.0') || s.includes('seedream_4.0') || s.includes('seedream4_0')) {
+    return [
+      { label: '标清 1K', value: '1K' },
+      { label: '高清 2K', value: '2K' },
+      { label: '超清 4K', value: '4K' },
+    ]
+  }
+  if (s.includes('seedream4') || s.includes('seedream_4')) {
+    // Seedream 4.5 等
+    return [
+      { label: '高清 2K', value: '2K' },
+      { label: '超清 4K', value: '4K' },
+    ]
+  }
+  // 默认
+  return [
+    { label: '高清 2K', value: '2K' },
+    { label: '超清 4K', value: '4K' },
+  ]
 }
 
 /**
@@ -96,6 +134,12 @@ export function getVideoReferenceMax(
   if (s.includes('seedance') && (s.includes('1.5') || s.includes('1_5'))) return 5
   if (s.includes('seedance')) return 5
   return 3
+}
+
+/** 是否为 Seedream 5.0 Lite 模型（支持 output_format: png） */
+export function isSeedream5Lite(modelId: string, modelName: string): boolean {
+  const s = norm(`${modelId} ${modelName}`)
+  return s.includes('seedream5') && s.includes('lite')
 }
 
 /** 与上传顺序对应的缩略图标签（历史气泡展示） */

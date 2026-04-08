@@ -12,8 +12,10 @@ import {
   Sparkles,
   MonitorPlay,
   Film,
+  Wand2,
+  LayoutGrid,
 } from 'lucide-react'
-import { useCanvasStore } from '../../../store/canvasStore'
+import { useProjectStore } from '../../../store/projectStore'
 import { useWorkspaceStore } from '../../../store/workspaceStore'
 import { runNode } from '../../../services/imageGeneration'
 import {
@@ -26,15 +28,16 @@ import { uploadImageFile, resolvePreviewToUploadedUrl } from '../../../lib/refer
 import {
   modeConfig,
   IMAGE_RATIO_OPTIONS,
-  IMAGE_RESOLUTION_OPTIONS,
   VIDEO_LENGTH_OPTIONS,
   VIDEO_RATIO_OPTIONS,
   VIDEO_REFERENCE_OPTIONS,
   VIDEO_RESOLUTION_OPTIONS,
+  resolveImageSize,
   type GenerateMode,
 } from '../../generate/constants'
 import type { ChatMessage } from '../../../store/types'
 import { useEditorOptions } from '../../../hooks/useEditorOptions'
+import { useAccountStore } from '../../../store/accountStore'
 
 // 附件类型：本地文件 或 拖拽引用
 interface Attachment {
@@ -50,16 +53,16 @@ interface AIPaneProps {
 }
 
 export default function AIPane({ fileId }: AIPaneProps) {
-  // 从 canvasFile 的 projectType 确定初始模式
-  const canvasFiles = useCanvasStore((s) => s.canvasFiles)
+  // 从 projectFile 的 projectType 确定初始模式
+  const projectFiles = useProjectStore((s) => s.projectFiles)
   const modeFromFile = (() => {
     if (!fileId) return null
-    const f = canvasFiles.find((cf) => cf.id === fileId)
+    const f = projectFiles.find((cf) => cf.id === fileId)
     if (f?.projectType === 'image') return 'image' as GenerateMode
     if (f?.projectType === 'video') return 'video' as GenerateMode
     return null
   })()
-  const initialAIMode = useCanvasStore((s) => s.initialAIMode)
+  const initialAIMode = useProjectStore((s) => s.initialAIMode)
   const [activeMode, setActiveMode] = useState<GenerateMode>(modeFromFile || initialAIMode || 'image')
   const [showModeMenu, setShowModeMenu] = useState(false)
   const [prompt, setPrompt] = useState('')
@@ -72,25 +75,25 @@ export default function AIPane({ fileId }: AIPaneProps) {
   const {
     ak,
     chatMessages,
-    chatReferences,
-    removeChatReference,
-    clearChatReferences,
-    appendCanvasFileMediaVersion,
-    setCanvasFileSelectedMediaVersion,
-  } = useCanvasStore()
+    appendProjectFileMediaVersion,
+    setProjectFileSelectedMediaVersion,
+  } = useProjectStore()
+
+  const globalWatermarkDisabled = useAccountStore((s) => s.globalWatermarkDisabled)
+  const addBalanceRecord = useAccountStore((s) => s.addBalanceRecord)
 
   // 从 WelcomeTab 传入的初始模式：消费后清除
   useEffect(() => {
     if (initialAIMode) {
       setActiveMode(initialAIMode)
-      useCanvasStore.getState().setInitialAIMode(null)
+      useProjectStore.getState().setInitialAIMode(null)
     }
   }, [initialAIMode])
 
   const boundFile = useMemo(() => {
     if (!fileId) return undefined
-    return canvasFiles.find((cf) => cf.id === fileId)
-  }, [fileId, canvasFiles])
+    return projectFiles.find((cf) => cf.id === fileId)
+  }, [fileId, projectFiles])
 
   useEffect(() => {
     if (boundFile?.projectType === 'image') setActiveMode('image')
@@ -107,6 +110,11 @@ export default function AIPane({ fileId }: AIPaneProps) {
     selectedImageModel, setSelectedImageModel,
     imageRatio, setImageRatio,
     imageResolution, setImageResolution,
+    imageResolutionOptions,
+    imagePromptOptimize, setImagePromptOptimize,
+    imageSequentialGeneration, setImageSequentialGeneration,
+    imageMaxImages, setImageMaxImages,
+    imageOutputFormat, setImageOutputFormat, imageSupportsOutputFormat,
     selectedVideoModel, setSelectedVideoModel,
     videoLength, setVideoLength,
     videoRatio, setVideoRatio,
@@ -145,7 +153,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
   const [titleEditing, setTitleEditing] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
-  const renameCanvasFile = useCanvasStore((s) => s.renameCanvasFile)
+  const renameProjectFile = useProjectStore((s) => s.renameProjectFile)
 
   const useDedicatedMediaSession = useMemo(
     () =>
@@ -194,7 +202,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
     // 组装上下文 prompt
     let assembledPrompt = prompt.trim()
 
-    const boundNow = fileId ? useCanvasStore.getState().canvasFiles.find((f) => f.id === fileId) : undefined
+    const boundNow = fileId ? useProjectStore.getState().projectFiles.find((f) => f.id === fileId) : undefined
     const useDedicatedMediaSessionSend =
       !!fileId &&
       !!boundNow &&
@@ -202,13 +210,13 @@ export default function AIPane({ fileId }: AIPaneProps) {
         (boundNow.projectType === 'video' && activeMode === 'video'))
 
     const addMsg = (m: ChatMessage) => {
-      const st = useCanvasStore.getState()
-      if (useDedicatedMediaSessionSend && fileId) st.addCanvasFileChatMessage(fileId, m)
+      const st = useProjectStore.getState()
+      if (useDedicatedMediaSessionSend && fileId) st.addProjectFileChatMessage(fileId, m)
       else st.addChatMessage(m)
     }
     const updMsg = (id: string, updates: Partial<ChatMessage>) => {
-      const st = useCanvasStore.getState()
-      if (useDedicatedMediaSessionSend && fileId) st.updateCanvasFileChatMessage(fileId, id, updates)
+      const st = useProjectStore.getState()
+      if (useDedicatedMediaSessionSend && fileId) st.updateProjectFileChatMessage(fileId, id, updates)
       else st.updateChatMessage(id, updates)
     }
 
@@ -246,7 +254,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
       role: 'user',
       mode: activeMode,
       content: prompt.trim(),
-      references: chatReferences.length > 0 ? [...chatReferences] : undefined,
       referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
       referenceMode:
         activeMode === 'video' && refUrls.length > 0 ? (videoRefMode as 'all' | 'first' | 'both') : undefined,
@@ -259,10 +266,6 @@ export default function AIPane({ fileId }: AIPaneProps) {
     setPrompt('')
     setAttachments([])
 
-    if (chatReferences.length > 0) {
-      clearChatReferences()
-    }
-
     setIsSending(true)
     updMsg(messageId, { status: 'generating' })
 
@@ -274,22 +277,43 @@ export default function AIPane({ fileId }: AIPaneProps) {
           type: 'image',
           prompt: currentPrompt,
           model,
-          size: imageResolution,
+          size: resolveImageSize(model, imageRatio, imageResolution),
           response_format: 'url',
-          ...(refUrls.length > 0 ? { reference_image_urls: refUrls } : {}),
+          watermark: !globalWatermarkDisabled,
+          ...(imagePromptOptimize ? { optimize_prompt_options: { mode: 'standard' as const } } : {}),
+          ...(imageSequentialGeneration ? {
+            sequential_image_generation: 'auto' as const,
+            sequential_image_generation_options: { max_images: imageMaxImages },
+          } : {}),
+          ...(imageSupportsOutputFormat && imageOutputFormat !== 'jpeg' ? { output_format: imageOutputFormat } : {}),
+          ...(refUrls.length > 0 ? { image: refUrls } : {}),
         })
         const contentUrl = result.outputs.content_url || ''
+        const contentUrls = result.outputs.content_urls || (contentUrl ? [contentUrl] : [])
 
         if (useDedicatedMediaSessionSend && fileId) {
-          appendCanvasFileMediaVersion(fileId, { url: contentUrl, prompt: currentPrompt, model })
+          appendProjectFileMediaVersion(fileId, { url: contentUrls[0] || contentUrl, prompt: currentPrompt, model })
           updMsg(messageId, {
             status: 'completed',
-            resultUrl: contentUrl,
-            resultText: '已保存为本文件的当前版本（引用与缩略图均指向此版本）',
+            resultUrl: contentUrls[0] || contentUrl,
+            ...(contentUrls.length > 1 ? { resultUrls: contentUrls } : {}),
+            resultText: contentUrls.length > 1
+              ? `已生成 ${contentUrls.length} 张组图，首张已保存为当前版本`
+              : '已保存为本文件的当前版本（引用与缩略图均指向此版本）',
           })
         } else {
-          updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '图片已生成' })
+          updMsg(messageId, {
+            status: 'completed',
+            resultUrl: contentUrls[0] || contentUrl,
+            ...(contentUrls.length > 1 ? { resultUrls: contentUrls } : {}),
+            resultText: contentUrls.length > 1 ? `已生成 ${contentUrls.length} 张组图` : '图片已生成',
+          })
         }
+
+        // 记录余额消耗
+        const modelInfo = imageModels.find((m) => m.name === model)
+        const cost = (modelInfo?.costRate ?? 1) * 0.5 * (contentUrls.length || 1)
+        addBalanceRecord({ type: 'consume', event: `图片生成 - ${model.replace('MaaS_', '')}`, amount: -cost, timestamp: Date.now(), model })
       } else if (activeMode === 'video') {
         const model = getActiveModel()
         if (!model) throw new Error('没有可用的视频生成模型，请检查后端服务')
@@ -298,16 +322,17 @@ export default function AIPane({ fileId }: AIPaneProps) {
           prompt: currentPrompt,
           model,
           length: videoLength,
+          watermark: !globalWatermarkDisabled,
           ...(refUrls.length > 0
             ? {
-                reference_image_urls: refUrls,
+                image: refUrls,
                 video_reference_mode: videoRefMode as 'all' | 'first' | 'both',
               }
             : {}),
         })
         const contentUrl = result.outputs.content_url || ''
         if (useDedicatedMediaSessionSend && fileId) {
-          appendCanvasFileMediaVersion(fileId, { url: contentUrl, prompt: currentPrompt, model })
+          appendProjectFileMediaVersion(fileId, { url: contentUrl, prompt: currentPrompt, model })
           updMsg(messageId, {
             status: 'completed',
             resultUrl: contentUrl,
@@ -316,6 +341,11 @@ export default function AIPane({ fileId }: AIPaneProps) {
         } else {
           updMsg(messageId, { status: 'completed', resultUrl: contentUrl, resultText: '视频已生成' })
         }
+
+        // 记录余额消耗
+        const modelInfo = videoModels.find((m) => m.name === model)
+        const cost = (modelInfo?.costRate ?? 1) * 3
+        addBalanceRecord({ type: 'consume', event: `视频生成 - ${model.replace('MaaS_', '')}`, amount: -cost, timestamp: Date.now(), model })
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '生成失败'
@@ -603,7 +633,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
                 </div>
                 <div className="text-[10px] text-apple-text-tertiary mb-2">分辨率</div>
                 <div className="grid grid-cols-2 gap-1.5 mb-3">
-                  {IMAGE_RESOLUTION_OPTIONS.map((opt) => (
+                  {imageResolutionOptions.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => setImageResolution(opt.value)}
@@ -621,6 +651,79 @@ export default function AIPane({ fileId }: AIPaneProps) {
             </>
           )}
         </div>
+
+        {/* 提示词优化开关 */}
+        <button
+          onClick={() => setImagePromptOptimize(!imagePromptOptimize)}
+          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] transition-colors border ${
+            imagePromptOptimize
+              ? 'text-violet-600 bg-violet-50/60 border-violet-200/60'
+              : 'text-apple-text-tertiary hover:bg-apple-bg-secondary border-apple-border-light/60'
+          }`}
+          title={imagePromptOptimize ? '提示词优化：开启' : '提示词优化：关闭'}
+        >
+          <Wand2 size={10} />
+          优化
+        </button>
+
+        {/* 组图生成 */}
+        <div className="relative">
+          <button
+            onClick={() => togglePopup('seqGen')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] transition-colors border ${
+              imageSequentialGeneration
+                ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200/60'
+                : 'text-apple-text-tertiary hover:bg-apple-bg-secondary border-apple-border-light/60'
+            }`}
+            title={imageSequentialGeneration ? `组图：${imageMaxImages}张` : '组图：关闭'}
+          >
+            <LayoutGrid size={10} />
+            组图{imageSequentialGeneration ? ` ${imageMaxImages}` : ''}
+          </button>
+          {activePopup === 'seqGen' && (
+            <>
+              <div className="fixed inset-0 z-[60]" onClick={() => setActivePopup(null)} />
+              <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-2xl border border-apple-border-light shadow-xl p-3 z-[70]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-medium text-apple-text">启用组图</span>
+                  <button
+                    onClick={() => setImageSequentialGeneration(!imageSequentialGeneration)}
+                    className={`w-8 h-[18px] rounded-full transition-colors ${imageSequentialGeneration ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                  >
+                    <div className={`w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${imageSequentialGeneration ? 'translate-x-[15px]' : 'translate-x-[3px]'}`} />
+                  </button>
+                </div>
+                {imageSequentialGeneration && (
+                  <>
+                    <div className="text-[10px] text-apple-text-tertiary mb-1.5">生成张数</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={2}
+                        max={15}
+                        value={imageMaxImages}
+                        onChange={(e) => setImageMaxImages(Number(e.target.value))}
+                        className="flex-1 h-1 accent-emerald-500"
+                      />
+                      <span className="text-[11px] font-medium text-apple-text w-5 text-center">{imageMaxImages}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* 输出格式（仅 5.0_lite） */}
+        {imageSupportsOutputFormat && (
+          <button
+            onClick={() => setImageOutputFormat(imageOutputFormat === 'jpeg' ? 'png' : 'jpeg')}
+            className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-apple-text-tertiary hover:bg-apple-bg-secondary border border-apple-border-light/60 transition-colors"
+            title={`输出格式：${imageOutputFormat.toUpperCase()}`}
+          >
+            {imageOutputFormat.toUpperCase()}
+          </button>
+        )}
 
       </>
     )
@@ -830,23 +933,46 @@ export default function AIPane({ fileId }: AIPaneProps) {
   // 渲染消息中的结果预览
   const renderResultPreview = (item: typeof chatMessages[0]) => {
     if (item.status !== 'completed') return null
+    const urls = item.resultUrls || (item.resultUrl ? [item.resultUrl] : [])
     return (
       <div className="mt-2 p-2.5 bg-apple-bg-secondary rounded-xl border border-apple-border-light">
-        {item.resultUrl && item.mode === 'image' && (
-          <img
-            src={item.resultUrl}
-            alt=""
-            className="w-full max-w-[200px] rounded-xl mb-2 cursor-pointer"
-            draggable
-            onClick={() => setPreviewImage(item.resultUrl!)}
-            onDragStart={(e) => {
-              e.dataTransfer.setData('application/json', JSON.stringify({
-                type: 'generated-content',
-                url: item.resultUrl,
-                name: item.content?.slice(0, 20) || '生成图片',
-              }))
-            }}
-          />
+        {urls.length > 0 && item.mode === 'image' && (
+          urls.length === 1 ? (
+            <img
+              src={urls[0]}
+              alt=""
+              className="w-full max-w-[200px] rounded-xl mb-2 cursor-pointer"
+              draggable
+              onClick={() => setPreviewImage(urls[0])}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/json', JSON.stringify({
+                  type: 'generated-content',
+                  url: urls[0],
+                  name: item.content?.slice(0, 20) || '生成图片',
+                }))
+              }}
+            />
+          ) : (
+            <div className={`grid gap-1.5 mb-2 ${urls.length <= 2 ? 'grid-cols-2' : urls.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {urls.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt=""
+                  className="w-full rounded-lg cursor-pointer aspect-square object-cover"
+                  draggable
+                  onClick={() => setPreviewImage(url)}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify({
+                      type: 'generated-content',
+                      url,
+                      name: `${item.content?.slice(0, 15) || '组图'}_${i + 1}`,
+                    }))
+                  }}
+                />
+              ))}
+            </div>
+          )
         )}
         {item.resultUrl && item.mode === 'video' && (
           <div
@@ -888,7 +1014,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
             onBlur={() => {
               const n = titleDraft.trim()
               if (n) {
-                renameCanvasFile(fileId, n)
+                renameProjectFile(fileId, n)
                 useWorkspaceStore.getState().refreshTabLabels()
               }
               setTitleEditing(false)
@@ -946,7 +1072,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
                     <button
                       key={v.id}
                       type="button"
-                      onClick={() => setCanvasFileSelectedMediaVersion(fileId, v.id)}
+                      onClick={() => setProjectFileSelectedMediaVersion(fileId, v.id)}
                       className={`flex-shrink-0 rounded-lg border-2 overflow-hidden transition-colors ${
                         sel ? 'border-brand ring-1 ring-brand/30' : 'border-apple-border-light hover:border-apple-text-tertiary/40'
                       }`}
@@ -1072,30 +1198,7 @@ export default function AIPane({ fileId }: AIPaneProps) {
 
       {/* 底部输入区域 */}
       <div className="flex-shrink-0 px-3 pb-3 pt-2">
-        {/* 引用展示区域 */}
-        {chatReferences.length > 0 && (
-          <div className="flex items-center gap-1.5 mb-2 flex-wrap px-1">
-            {chatReferences.map((ref) => (
-              <div
-                key={ref.nodeId}
-                className="flex items-center gap-1 px-2 py-1 bg-brand-50 rounded-lg border border-brand/20 text-[10px] text-brand group"
-              >
-                {ref.previewUrl ? (
-                  <img src={ref.previewUrl} alt="" className="w-5 h-5 rounded object-cover" />
-                ) : null}
-                <span>{ref.label || ref.nodeType}</span>
-                <button
-                  onClick={() => removeChatReference(ref.nodeId)}
-                  className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 输入卡片 */}
+      {/* 输入卡片 */}
         <div
           className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all overflow-visible ${
             isDragOver ? 'border-brand ring-2 ring-brand/20' : 'border-apple-border-light'

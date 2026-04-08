@@ -36,7 +36,7 @@ mcp = FastMCP(
         "- **Text Generation**: Generate scripts, dialogue, and scene descriptions using GLM models\n"
         "- **Asset Management**: Save, list, and delete generated assets in the library\n"
         "- **Image Upload**: Upload images from URL or base64 data\n"
-        "- **Canvas Files**: Manage canvas project files (visual node-based workflows)\n\n"
+        "- **Project Files**: Manage project files for image/video generation\n\n"
         "Typical workflow:\n"
         "1. Use list_models to see available models\n"
         "2. Use generate_image / generate_video / generate_text to create content\n"

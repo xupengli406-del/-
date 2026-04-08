@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Image, Film, Clock } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
-import { useCanvasStore } from '../../store/canvasStore'
+import { useProjectStore } from '../../store/projectStore'
 
 const cards = [
   {
@@ -27,18 +27,18 @@ const cards = [
 export default function WelcomeTab({ paneId }: { paneId?: string }) {
   const { openDocument, openDocumentInPlace } = useWorkspaceStore()
 
-  const canvasFiles = useCanvasStore((s) => s.canvasFiles)
+  const projectFiles = useProjectStore((s) => s.projectFiles)
 
   const recentFiles = useMemo(
-    () => [...canvasFiles]
+    () => [...projectFiles]
       .filter((file) => file.projectType === 'image' || file.projectType === 'video')
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, 3),
-    [canvasFiles]
+    [projectFiles]
   )
 
   const handleClick = (key: string) => {
-    const cs = useCanvasStore.getState()
+    const cs = useProjectStore.getState()
     if (key !== 'image' && key !== 'video') return
 
     const nameMap = {
@@ -46,16 +46,16 @@ export default function WelcomeTab({ paneId }: { paneId?: string }) {
       video: '新视频',
     } as const
 
-    cs.updateCurrentCanvasFile()
-    cs.clearCanvas()
-    const fileId = cs.saveCanvasAsFile(nameMap[key], key)
+    cs.updateCurrentProjectFile()
+    cs.clearChat()
+    const fileId = cs.createProjectFile(nameMap[key], key)
     cs.setEditingProjectId(fileId)
     openDocumentInPlace({ type: key === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }, paneId)
   }
 
   const handleOpenRecent = (fileId: string) => {
-    const store = useCanvasStore.getState()
-    const file = store.canvasFiles.find((item) => item.id === fileId)
+    const store = useProjectStore.getState()
+    const file = store.projectFiles.find((item) => item.id === fileId)
     if (!file) return
 
     store.setEditingProjectId(fileId)

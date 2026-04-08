@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Plus, Image, Video, FolderPlus, Folder } from 'lucide-react'
+import { Plus, Image, Video, FolderPlus } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
-import { useCanvasStore } from '../../store/canvasStore'
+import { useProjectStore } from '../../store/projectStore'
 import FileTree from './FileTree'
 import type { DocumentId } from '../../store/workspaceTypes'
 
 export default function SidePanel() {
   const { activeSidePanel, openDocument } = useWorkspaceStore()
-  const { addCustomFolder } = useCanvasStore()
-  const hasFiles = useCanvasStore((s) => s.canvasFiles.length > 0)
+  const { addCustomFolder } = useProjectStore()
 
   const [showNewMenu, setShowNewMenu] = useState(false)
   const newMenuRef = useRef<HTMLDivElement>(null)
@@ -25,11 +24,11 @@ export default function SidePanel() {
   }, [showNewMenu])
 
   const createFile = useCallback((projectType: 'image' | 'video') => {
-    const store = useCanvasStore.getState()
-    store.updateCurrentCanvasFile()
-    store.clearCanvas()
+    const store = useProjectStore.getState()
+    store.updateCurrentProjectFile()
+    store.clearChat()
     const nameMap: Record<'image' | 'video', string> = { image: '新分镜图片', video: '新视频' }
-    const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
+    const fileId = store.createProjectFile(nameMap[projectType], projectType)
     store.setEditingProjectId(fileId)
     const docId: DocumentId = { type: projectType === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }
     openDocument(docId)
@@ -73,24 +72,6 @@ export default function SidePanel() {
         </div>
         </div>
       </div>
-
-      {/* 蓝色文件夹图标 */}
-      {!hasFiles && (
-        <div className="px-4 pt-2 pb-1 flex-shrink-0">
-          <Folder size={20} className="text-brand" fill="#4670FE" strokeWidth={0} />
-        </div>
-      )}
-
-      {/* 空状态 */}
-      {!hasFiles && (
-        <div className="flex-grow flex flex-col items-center justify-start pt-12 px-6 text-center">
-          <FileText size={48} className="text-ds-on-surface-variant/10 mb-4" strokeWidth={1} />
-          <p className="text-sm text-ds-on-surface-variant font-medium">暂无文件</p>
-          <p className="text-[11px] text-ds-on-surface-variant/60 mt-2 leading-relaxed">
-            点击上方 +<br />新建文件或文件夹
-          </p>
-        </div>
-      )}
 
       {/* 面板内容 */}
       <div className="flex-1 overflow-hidden">
