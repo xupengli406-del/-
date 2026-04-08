@@ -37,7 +37,7 @@ def register(mcp: FastMCP) -> None:
             name: Display name for the asset.
             url: URL of the asset content (e.g., image URL from generate_image).
             type: Asset type. One of: image, video, text, audio.
-            source: Origin of the asset. One of: generate, upload, canvas. Default: generate.
+            source: Origin of the asset. One of: generate, upload. Default: generate.
             text_content: Text content for text-type assets. Leave empty for media assets.
 
         Returns:

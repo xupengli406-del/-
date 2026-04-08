@@ -9,11 +9,33 @@ import {
   Video,
 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
-import { useCanvasStore } from '../../store/canvasStore'
+import { useProjectStore } from '../../store/projectStore'
 import FileTreeContextMenu from './FileTreeContextMenu'
 import MoveToFolderModal from './MoveToFolderModal'
 import type { ContextMenuTarget } from './FileTreeContextMenu'
-import type { FileTreeItem, DocumentId } from '../../store/workspaceTypes'
+import type { FileTreeItem, DocumentId, PaneNode } from '../../store/workspaceTypes'
+
+// 从 paneLayout 中提取当前活跃 pane 的活跃文档 id
+function getActiveDocId(layout: PaneNode, activePaneId: string): DocumentId | null {
+  if (layout.kind === 'leaf') {
+    if (layout.id === activePaneId && layout.tabs.length > 0 && layout.activeTabIndex >= 0) {
+      return layout.tabs[layout.activeTabIndex]?.docId ?? null
+    }
+    return null
+  }
+  for (const child of layout.children) {
+    const found = getActiveDocId(child, activePaneId)
+    if (found) return found
+  }
+  return null
+}
+
+// 从 DocumentId 转换为文件树 item id
+function docIdToTreeItemId(docId: DocumentId): string | null {
+  if (docId.type === 'imageGeneration') return `image_${docId.id}`
+  if (docId.type === 'videoGeneration') return `video_${docId.id}`
+  return null
+}
 
 // 收集文件树中所有文件项的 id（按渲染顺序，用于 Shift 范围选择）
 function collectFileIds(items: FileTreeItem[], expandedFolders: Set<string>): string[] {
@@ -30,19 +52,17 @@ function collectFileIds(items: FileTreeItem[], expandedFolders: Set<string>): st
   return result
 }
 
-// 从 FileTreeItem id 中提取 canvasFile id（用于拖拽归属）
-function extractCanvasFileId(itemId: string): string | null {
-  if (itemId.startsWith('canvas_')) return itemId.slice(7)
+// 从 FileTreeItem id 中提取 projectFile id（用于拖拽归属）
+function extractProjectFileId(itemId: string): string | null {
   if (itemId.startsWith('image_')) return itemId.slice(6)
   if (itemId.startsWith('video_')) return itemId.slice(6)
-  if (itemId.startsWith('ai_')) return itemId.slice(3)
-  if (itemId.startsWith('script_')) return itemId.slice(7)
   return null
 }
 
 export default function FileTree() {
   const { buildFileTree, fileTreeExpandedFolders, toggleFolder, openDocument, openDocumentInPlace, splitPane, activePaneId, refreshTabLabels } = useWorkspaceStore()
-  const { customFolders, addCustomFolder, renameCustomFolder, removeCustomFolder, moveFileToFolder, moveFolderToFolder } = useCanvasStore()
+  const paneLayout = useWorkspaceStore((s) => s.paneLayout)
+  const { customFolders, addCustomFolder, renameCustomFolder, removeCustomFolder, moveFileToFolder, moveFolderToFolder } = useProjectStore()
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{
@@ -52,6 +72,16 @@ export default function FileTree() {
   // 多选状态
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [lastClickedId, setLastClickedId] = useState<string | null>(null)
+
+  // 活跃标签页变化时同步文件树选中状态
+  useEffect(() => {
+    const activeDocId = getActiveDocId(paneLayout, activePaneId)
+    if (!activeDocId) return
+    const treeItemId = docIdToTreeItemId(activeDocId)
+    if (!treeItemId) return
+    setSelectedIds(new Set([treeItemId]))
+    setLastClickedId(treeItemId)
+  }, [paneLayout, activePaneId])
 
   // 重命名状态
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -74,7 +104,7 @@ export default function FileTree() {
 
   // 拖拽状态
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
-  const dragItemRef = useRef<{ itemId: string; canvasFileId: string | null; isFolder: boolean } | null>(null)
+  const dragItemRef = useRef<{ itemId: string; projectFileId: string | null; isFolder: boolean } | null>(null)
 
   // "移动到文件夹"弹窗状态
   const [moveToFileIds, setMoveToFileIds] = useState<string[] | null>(null)
@@ -214,14 +244,14 @@ export default function FileTree() {
 
   // === 拖拽处理 ===
   const handleDragStart = useCallback((e: React.DragEvent, itemId: string, isFolder = false) => {
-    const canvasFileId = isFolder ? null : extractCanvasFileId(itemId)
-    dragItemRef.current = { itemId, canvasFileId, isFolder }
+    const projectFileId = isFolder ? null : extractProjectFileId(itemId)
+    dragItemRef.current = { itemId, projectFileId, isFolder }
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', itemId)
 
     // 为 GenerationPane 的拖拽引用设置 JSON 数据
-    if (!isFolder && canvasFileId) {
-      const file = useCanvasStore.getState().canvasFiles.find(f => f.id === canvasFileId)
+    if (!isFolder && projectFileId) {
+      const file = useProjectStore.getState().projectFiles.find(f => f.id === projectFileId)
       const ms = file?.mediaState
       if (ms?.versions.length) {
         const ver = ms.selectedVersionId
@@ -265,16 +295,16 @@ export default function FileTree() {
     }
 
     // 拖拽的是文件
-    if (!dragItem.canvasFileId) return
+    if (!dragItem.projectFileId) return
 
     // 如果拖拽的文件在多选集合中，移动所有选中的文件
     if (selectedIds.has(dragItem.itemId) && selectedIds.size > 1) {
       for (const itemId of selectedIds) {
-        const fid = extractCanvasFileId(itemId)
+        const fid = extractProjectFileId(itemId)
         if (fid) moveFileToFolder(fid, targetFolderId)
       }
     } else {
-      moveFileToFolder(dragItem.canvasFileId, targetFolderId)
+      moveFileToFolder(dragItem.projectFileId, targetFolderId)
     }
     dragItemRef.current = null
   }, [moveFileToFolder, moveFolderToFolder, selectedIds])
@@ -302,32 +332,32 @@ export default function FileTree() {
       return
     }
 
-    if (!dragItem.canvasFileId) return
+    if (!dragItem.projectFileId) return
 
     // 如果拖拽的文件在多选集合中，移动所有选中的文件到根级
     if (selectedIds.has(dragItem.itemId) && selectedIds.size > 1) {
       for (const itemId of selectedIds) {
-        const fid = extractCanvasFileId(itemId)
+        const fid = extractProjectFileId(itemId)
         if (fid) moveFileToFolder(fid, undefined)
       }
     } else {
-      moveFileToFolder(dragItem.canvasFileId, undefined)
+      moveFileToFolder(dragItem.projectFileId, undefined)
     }
     dragItemRef.current = null
   }, [moveFileToFolder, moveFolderToFolder, selectedIds])
 
   // === 新建文件（在指定 folderId 下创建，null 表示根级） ===
   const createFile = useCallback((projectType: 'image' | 'video', folderId: string | null) => {
-    const store = useCanvasStore.getState()
-    store.updateCurrentCanvasFile()
-    store.clearCanvas()
+    const store = useProjectStore.getState()
+    store.updateCurrentProjectFile()
+    store.clearChat()
 
     const nameMap: Record<'image' | 'video', string> = {
       image: '新分镜图片',
       video: '新视频',
     }
 
-    const fileId = store.saveCanvasAsFile(nameMap[projectType], projectType)
+    const fileId = store.createProjectFile(nameMap[projectType], projectType)
     const docId: DocumentId = { type: projectType === 'image' ? 'imageGeneration' : 'videoGeneration', id: fileId }
 
     store.setEditingProjectId(fileId)
@@ -412,19 +442,9 @@ export default function FileTree() {
         renameCustomFolder(renamingId, newName)
       }
       let renamedFile = false
-      if (renamingId.startsWith('canvas_')) {
-        const canvasId = renamingId.replace('canvas_', '')
-        useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
-        renamedFile = true
-      }
-      if (renamingId.startsWith('ai_')) {
-        const canvasId = renamingId.replace('ai_', '')
-        useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
-        renamedFile = true
-      }
-      if (renamingId.startsWith('script_')) {
-        const canvasId = renamingId.replace('script_', '')
-        useCanvasStore.getState().renameCanvasFile?.(canvasId, newName)
+      const projectFileId = extractProjectFileId(renamingId)
+      if (projectFileId) {
+        useProjectStore.getState().renameProjectFile?.(projectFileId, newName)
         renamedFile = true
       }
       if (renamedFile) {
@@ -445,26 +465,22 @@ export default function FileTree() {
     const ws = useWorkspaceStore.getState()
     if (id.startsWith('folder_')) {
       // 文件夹删除：先关闭该文件夹下所有文件的 tab
-      const cs = useCanvasStore.getState()
+      const cs = useProjectStore.getState()
       const folderId = id
-      cs.canvasFiles
+      cs.projectFiles
         .filter((f) => f.folderId === folderId)
         .forEach((f) => ws.closeTabsByFileId(f.id))
       removeCustomFolder(id)
       return
     }
-    const cs = useCanvasStore.getState()
-    const fileId = id.replace(/^(canvas_|ai_|script_|image_|video_|audio_)/, '')
+    const cs = useProjectStore.getState()
+    const fileId = id.replace(/^(image_|video_)/, '')
     if (
-      id.startsWith('canvas_') ||
-      id.startsWith('ai_') ||
-      id.startsWith('script_') ||
       id.startsWith('image_') ||
-      id.startsWith('video_') ||
-      id.startsWith('audio_')
+      id.startsWith('video_')
     ) {
       ws.closeTabsByFileId(fileId)
-      cs.removeCanvasFile(fileId)
+      cs.removeProjectFile(fileId)
     }
   }, [removeCustomFolder])
 
@@ -480,9 +496,9 @@ export default function FileTree() {
   const handleCreateFolderFromSelection = useCallback(() => {
     const folderId = addCustomFolder('新文件夹')
     for (const itemId of selectedIds) {
-      const canvasFileId = extractCanvasFileId(itemId)
-      if (canvasFileId) {
-        moveFileToFolder(canvasFileId, folderId)
+      const projectFileId = extractProjectFileId(itemId)
+      if (projectFileId) {
+        moveFileToFolder(projectFileId, folderId)
       }
     }
     setSelectedIds(new Set())
@@ -503,7 +519,7 @@ export default function FileTree() {
   const handleMoveTo = useCallback(() => {
     const ids: string[] = []
     for (const itemId of selectedIds) {
-      const fid = extractCanvasFileId(itemId)
+      const fid = extractProjectFileId(itemId)
       if (fid) ids.push(fid)
     }
     if (ids.length > 0) {
@@ -513,7 +529,7 @@ export default function FileTree() {
 
   const handleMoveToSingle = useCallback((docId: DocumentId) => {
     const itemId = `${docId.type === 'imageGeneration' ? 'image' : docId.type === 'videoGeneration' ? 'video' : docId.type}_${docId.id}`
-    const fid = extractCanvasFileId(itemId)
+    const fid = extractProjectFileId(itemId)
     if (fid) {
       setMoveToFileIds([fid])
     }
@@ -521,11 +537,11 @@ export default function FileTree() {
 
   // 获取文件类型图标
   const getFileIcon = (item: FileTreeItem) => {
-    // 根据 docId.type 和 canvasFile 的 projectType 显示图标
+    // 根据 docId.type 和 projectFile 的 projectType 显示图标
     if (item.docId) {
-      const cs = useCanvasStore.getState()
-      const canvasFile = cs.canvasFiles.find((f) => f.id === item.docId!.id)
-      const pt = canvasFile?.projectType
+      const cs = useProjectStore.getState()
+      const projectFile = cs.projectFiles.find((f) => f.id === item.docId!.id)
+      const pt = projectFile?.projectType
       if (pt === 'image') return <Image size={13} className="text-purple-500 flex-shrink-0" />
       if (pt === 'video') return <Video size={13} className="text-rose-500 flex-shrink-0" />
     }
@@ -788,10 +804,10 @@ export default function FileTree() {
           onDuplicate={() => {
             if (contextMenu.target.kind === 'file') {
               const docId = contextMenu.target.docId
-              const cs = useCanvasStore.getState()
-              const source = cs.canvasFiles.find((f) => f.id === docId.id)
+              const cs = useProjectStore.getState()
+              const source = cs.projectFiles.find((f) => f.id === docId.id)
               if (source) {
-                const copyId = cs.saveCanvasAsFile(`${source.name} 副本`, source.projectType as 'image' | 'video')
+                const copyId = cs.createProjectFile(`${source.name} 副本`, source.projectType as 'image' | 'video')
                 if (source.folderId) {
                   cs.moveFileToFolder(copyId, source.folderId)
                 }

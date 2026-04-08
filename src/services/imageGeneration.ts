@@ -51,20 +51,32 @@ export interface RunNodeRequest {
   prompt: string
   model: string
   name?: string
+  /** 尺寸：分辨率字符串 "2K"/"4K" 或像素值 "WxH"（如 "2048x2048"） */
   size?: string
   length?: number
   watermark?: boolean
   response_format?: 'url' | 'b64_json'
-  /** 参考图 URL 列表（与模型上限一致，由前端按模型能力裁剪） */
-  reference_image_urls?: string[]
+  /** 参考图 URL 列表（Seedream 4.0+ 最多 14 张，与 API image 字段对齐） */
+  image?: string[]
   /** 视频：全能参考 / 仅首帧 / 首帧+尾帧 */
   video_reference_mode?: 'all' | 'first' | 'both'
+  /** 提示词优化 */
+  optimize_prompt_options?: { mode: 'standard' | 'fast' }
+  /** 组图生成：auto 启用 / disabled 关闭 */
+  sequential_image_generation?: 'auto' | 'disabled'
+  /** 组图选项 */
+  sequential_image_generation_options?: { max_images: number }
+  /** 输出格式（仅 5.0_lite 支持 png） */
+  output_format?: 'jpeg' | 'png'
+  /** 启用流式输出 */
+  stream?: boolean
 }
 
 export interface RunNodeResponse {
   status: 'success' | 'failed'
   outputs: {
     content_url?: string
+    content_urls?: string[]
     content_b64?: string
     text?: string
     size?: string
@@ -146,5 +158,66 @@ export async function generateVideo(
   })
   return {
     contentUrl: result.outputs.content_url || '',
+  }
+}
+
+// ===== 流式节点执行 =====
+
+export interface StreamEvent {
+  type: 'partial_succeeded' | 'completed' | 'failed'
+  content_url?: string
+  content_urls?: string[]
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }
+  error?: string
+}
+
+/**
+ * 以 SSE 方式执行节点，逐步回调已生成的图片。
+ * 调用方负责在 `onEvent` 中更新 UI。
+ */
+export async function runNodeStream(
+  ak: string,
+  params: RunNodeRequest,
+  onEvent: (event: StreamEvent) => void,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/nodes/run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${ak}`,
+    },
+    body: JSON.stringify({ ...params, stream: true }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`API 请求失败 (${res.status}): ${text}`)
+  }
+
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('无法读取流式响应')
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      const data = line.slice(6).trim()
+      if (data === '[DONE]') return
+      try {
+        const event: StreamEvent = JSON.parse(data)
+        onEvent(event)
+      } catch {
+        // skip malformed JSON
+      }
+    }
   }
 }

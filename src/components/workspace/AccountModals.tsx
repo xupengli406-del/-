@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   Building2,
   Check,
+  ChevronRight,
   Crown,
   Eye,
   EyeOff,
@@ -10,17 +11,18 @@ import {
   Lock,
   Mail,
   User,
-  Wallet,
   X,
 } from 'lucide-react'
 import { useAccountStore, type UserPlan } from '../../store/accountStore'
+import PaymentModal from './PaymentModal'
+import BalanceDetailModal from './BalanceDetailModal'
 
 interface LoginModalProps {
   open: boolean
   onClose: () => void
 }
 
-interface BalanceModalProps {
+interface PlanModalProps {
   open: boolean
   onClose: () => void
 }
@@ -39,6 +41,7 @@ const plans: {
   badge: string
   desc: string
   features: string[]
+  storage: string
 }[] = [
   {
     key: 'subscription',
@@ -47,6 +50,7 @@ const plans: {
     badge: '个人创作者',
     desc: '适合个人、独立创作者和小团队日常生成使用。',
     features: ['图片 / 视频生成额度', '个人项目管理', '标准优先队列', '账户余额抵扣'],
+    storage: '50GB 云端存储',
   },
   {
     key: 'enterprise',
@@ -55,6 +59,7 @@ const plans: {
     badge: '团队协作',
     desc: '适合企业统一采购、团队权限管理与更高可用性需求。',
     features: ['多人协作与权限控制', '更高并发与额度', '专属客户成功支持', '对公结算与定制方案'],
+    storage: '500GB+ 云端存储',
   },
 ]
 
@@ -223,95 +228,186 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   )
 }
 
-export function BalanceModal({ open, onClose }: BalanceModalProps) {
-  const { balance, currentPlan, setCurrentPlan } = useAccountStore()
+export function PlanModal({ open, onClose }: PlanModalProps) {
+  const { currentPlan, setCurrentPlan, profile, balanceInfo } = useAccountStore()
+  const [activeTab, setActiveTab] = useState<'plan' | 'manage'>('plan')
+  const [paymentOpen, setPaymentOpen] = useState(false)
+  const [paymentPlan, setPaymentPlan] = useState<typeof plans[0] | null>(null)
+  const [balanceDetailOpen, setBalanceDetailOpen] = useState(false)
 
-  const current = useMemo(() => plans.find((item) => item.key === currentPlan), [currentPlan])
+  const handlePurchase = (plan: typeof plans[0]) => {
+    setPaymentPlan(plan)
+    setPaymentOpen(true)
+  }
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 px-6">
-      <div className="w-full max-w-[920px] rounded-[32px] border border-black/5 bg-white p-8 shadow-[0_32px_120px_rgba(15,23,42,0.18)]">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#EEF3FF] px-3 py-1 text-sm text-[#1D51DF]">
-              <Wallet size={14} /> 账户余额与方案
-            </div>
-            <h3 className="mt-4 text-[30px] font-semibold text-slate-900">当前账户余额 ¥{balance}</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              当前方案：{current?.title}。下面展示你已开通的方案，以及可切换/升级的可选方案。
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-            title="关闭"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="mb-6 rounded-[28px] border border-[#DCE6FF] bg-[#F8FAFF] p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-sm text-[#1D51DF]">
-                <Crown size={14} /> 当前方案
+    <>
+      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 px-6">
+        <div className="w-full max-w-[920px] rounded-[32px] border border-black/5 bg-white p-8 shadow-[0_32px_120px_rgba(15,23,42,0.18)]">
+          {/* 头部 — 用户信息 + 余额入口 */}
+          <div className="mb-6 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5B6472] text-[14px] font-semibold text-white">
+                {profile.avatar}
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold text-slate-900">{profile.name}</span>
+                  <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
+                    {currentPlan === 'subscription' ? '订阅版' : '企业版'}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-[12px] text-slate-400">{profile.email}</div>
               </div>
-              <div className="mt-3 text-2xl font-semibold text-slate-900">{current?.title}</div>
-              <div className="mt-2 text-sm text-slate-500">{current?.desc}</div>
             </div>
-            <div className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm">
-              <div className="text-xs text-slate-400">当前费用</div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">{current?.price}</div>
+
+            <div className="flex items-center gap-3">
+              {/* 余额详情入口 */}
+              <button
+                onClick={() => setBalanceDetailOpen(true)}
+                className="flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-medium text-slate-600 transition hover:border-brand/30 hover:bg-brand/5 hover:text-brand"
+              >
+                <span className="text-brand">✦</span>
+                <span>余额详情</span>
+                <span className="font-semibold text-brand">¥{balanceInfo.total.toFixed(0)}</span>
+                <ChevronRight size={12} className="text-slate-400" />
+              </button>
+
+              <button
+                onClick={onClose}
+                className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                title="关闭"
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-5">
-          {plans.map((plan) => {
-            const active = plan.key === currentPlan
-            return (
+          {/* 标题 + Tab */}
+          <div className="mb-6 text-center">
+            <h3 className="text-[24px] font-semibold text-slate-900">订阅计划</h3>
+            <div className="mt-4 inline-flex rounded-full border border-slate-200 p-1">
               <button
-                key={plan.key}
-                onClick={() => setCurrentPlan(plan.key)}
-                className={`rounded-[28px] border p-6 text-left transition ${
-                  active
-                    ? 'border-[#1D51DF] bg-white shadow-[0_18px_60px_rgba(29,81,223,0.12)]'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                onClick={() => setActiveTab('plan')}
+                className={`rounded-full px-5 py-1.5 text-[13px] font-medium transition ${
+                  activeTab === 'plan'
+                    ? 'bg-brand text-white'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">{plan.badge}</div>
-                    <div className="mt-4 text-[24px] font-semibold text-slate-900">{plan.title}</div>
-                    <div className="mt-2 text-sm text-slate-500">{plan.desc}</div>
-                  </div>
-                  {active ? (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D51DF] text-white">
-                      <Check size={16} />
-                    </div>
-                  ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                      {plan.key === 'enterprise' ? <Building2 size={16} /> : <Crown size={16} />}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-5 text-2xl font-semibold text-slate-900">{plan.price}</div>
-                <div className="mt-5 space-y-3">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-center gap-2 text-sm text-slate-600">
-                      <Check size={14} className="text-[#1D51DF]" />
-                      {feature}
-                    </div>
-                  ))}
-                </div>
+                订阅计划
               </button>
-            )
-          })}
+              <button
+                onClick={() => setActiveTab('manage')}
+                className={`rounded-full px-5 py-1.5 text-[13px] font-medium transition ${
+                  activeTab === 'manage'
+                    ? 'bg-brand text-white'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                订阅管理
+              </button>
+            </div>
+          </div>
+
+          {activeTab === 'plan' ? (
+            /* 套餐卡片 — 两列 */
+            <div className="grid grid-cols-2 gap-5">
+              {plans.map((plan) => {
+                const active = plan.key === currentPlan
+                const isEnterprise = plan.key === 'enterprise'
+                return (
+                  <div
+                    key={plan.key}
+                    className={`rounded-[28px] border p-6 transition ${
+                      active
+                        ? 'border-brand bg-white shadow-[0_18px_60px_rgba(70,112,254,0.12)]'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                          {plan.badge}
+                        </div>
+                        <div className="mt-4 text-[24px] font-semibold text-slate-900">{plan.title}</div>
+                        <div className="mt-2 text-sm text-slate-500">{plan.desc}</div>
+                      </div>
+                      {active ? (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white">
+                          <Check size={16} />
+                        </div>
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                          {isEnterprise ? <Building2 size={16} /> : <Crown size={16} />}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-5 text-2xl font-semibold text-slate-900">{plan.price}</div>
+
+                    <div className="mt-5 space-y-3">
+                      {plan.features.map((feature) => (
+                        <div key={feature} className="flex items-center gap-2 text-sm text-slate-600">
+                          <Check size={14} className="text-brand" />
+                          {feature}
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Check size={14} className="text-brand" />
+                        {plan.storage}
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      {isEnterprise ? (
+                        <button className="flex h-12 w-full items-center justify-center rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50">
+                          联系销售
+                        </button>
+                      ) : active ? (
+                        <button className="flex h-12 w-full items-center justify-center rounded-xl bg-slate-100 text-[14px] font-semibold text-slate-400 cursor-default">
+                          当前方案
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handlePurchase(plan)}
+                          className="flex h-12 w-full items-center justify-center rounded-xl bg-brand text-[14px] font-semibold text-white transition hover:bg-brand/90"
+                        >
+                          购买
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            /* 订阅管理 — 占位 */
+            <div className="flex h-[300px] items-center justify-center text-[14px] text-slate-400">
+              订阅管理功能即将上线
+            </div>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* 支付弹窗 */}
+      {paymentOpen && paymentPlan && (
+        <PaymentModal
+          planTitle={paymentPlan.title}
+          price={paymentPlan.price}
+          onClose={() => setPaymentOpen(false)}
+          onSuccess={() => {
+            setPaymentOpen(false)
+            setCurrentPlan(paymentPlan.key)
+          }}
+        />
+      )}
+
+      {/* 余额详情弹窗 */}
+      <BalanceDetailModal open={balanceDetailOpen} onClose={() => setBalanceDetailOpen(false)} />
+    </>
   )
 }
 

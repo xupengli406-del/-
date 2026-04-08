@@ -2,29 +2,44 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Panel, Group, Separator } from 'react-resizable-panels'
 import {
-  CircleDollarSign,
+  Check,
+  Droplets,
   FolderOpen,
+  HardDrive,
   Menu,
 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useAccountStore } from '../../store/accountStore'
 import SidePanel from './SidePanel'
 import PaneContainer from './PaneContainer'
-import { BalanceModal, LoginModal } from './AccountModals'
+import { LoginModal, PlanModal } from './AccountModals'
+import WatermarkSettingsModal from './WatermarkSettingsModal'
+import StorageModal from './StorageModal'
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  const val = bytes / Math.pow(1024, i)
+  return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`
+}
 
 const actionButtonBase = 'w-8 min-h-[40px] rounded-[8px] flex flex-col items-center justify-center transition-colors duration-150'
-const actionLabelBase = 'mt-0.5 text-[9px] font-medium tracking-[0.01em] leading-none'
 
 export default function WorkspaceShell() {
   const { paneLayout, activeSidePanel, setActiveSidePanel, toggleSidePanel } = useWorkspaceStore()
-  const { isLoggedIn, balance, profile, logout } = useAccountStore()
+  const { isLoggedIn, balanceInfo, profile, logout, globalWatermarkDisabled, storageQuota } = useAccountStore()
   const [loginOpen, setLoginOpen] = useState(false)
-  const [balanceOpen, setBalanceOpen] = useState(false)
+  const [planModalOpen, setPlanModalOpen] = useState(false)
+  const [watermarkModalOpen, setWatermarkModalOpen] = useState(false)
+  const [storageModalOpen, setStorageModalOpen] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
   const accountButtonRef = useRef<HTMLButtonElement | null>(null)
+  const balanceButtonRef = useRef<HTMLButtonElement | null>(null)
 
+  // 账户菜单定位
   useEffect(() => {
     if (!accountMenuOpen) return
 
@@ -32,7 +47,7 @@ export default function WorkspaceShell() {
       const rect = accountButtonRef.current?.getBoundingClientRect()
       if (!rect) return
       setMenuPosition({
-        top: Math.max(12, rect.top - 116),
+        top: Math.max(12, rect.top - 200),
         left: Math.max(72, rect.left - 2),
       })
     }
@@ -86,13 +101,14 @@ export default function WorkspaceShell() {
             <div className="w-full flex flex-col items-center gap-1 pb-1.5">
               {isLoggedIn && (
                 <button
-                  onClick={() => setBalanceOpen(true)}
+                  ref={balanceButtonRef}
+                  onClick={() => setPlanModalOpen(true)}
                   className={`${actionButtonBase} text-brand hover:bg-ds-surface-container-high/80`}
                   title="账户余额"
                 >
                   <div className="flex items-center gap-0.5 text-[9px] font-semibold leading-none text-brand">
                     <span className="text-[10px]">✦</span>
-                    <span>{balance}</span>
+                    <span>{balanceInfo.total}</span>
                   </div>
                   <span className="mt-1 text-[8px] font-semibold leading-none text-brand">充值</span>
                 </button>
@@ -155,6 +171,7 @@ export default function WorkspaceShell() {
         </div>
       </div>
 
+      {/* 账户菜单 */}
       {isLoggedIn && accountMenuOpen && menuPosition && createPortal(
         <div
           ref={accountMenuRef}
@@ -165,6 +182,46 @@ export default function WorkspaceShell() {
             <div className="text-[13px] font-semibold text-slate-900 leading-none">{profile.name}</div>
             <div className="mt-1.5 text-[11px] text-slate-500 leading-4 truncate">{profile.email}</div>
           </div>
+
+          <div className="my-1 h-px bg-slate-100" />
+
+          <button
+            onClick={() => { setWatermarkModalOpen(true); setAccountMenuOpen(false) }}
+            className="flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+          >
+            <span className="flex items-center gap-2">
+              <Droplets size={14} />
+              去 AI 水印
+            </span>
+            {globalWatermarkDisabled && <Check size={14} className="text-brand" />}
+          </button>
+
+          <div className="my-1 h-px bg-slate-100" />
+
+          {/* 存储空间 */}
+          <button
+            onClick={() => { setStorageModalOpen(true); setAccountMenuOpen(false) }}
+            className="w-full rounded-[14px] px-3 py-2.5 text-left transition hover:bg-slate-50"
+          >
+            <div className="flex items-center justify-between text-[11px] mb-1.5">
+              <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                <HardDrive size={12} />
+                存储空间
+              </span>
+              <span className="text-slate-700 font-semibold text-[10px]">
+                {formatBytes(storageQuota.used)} / {formatBytes(storageQuota.total)}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  storageQuota.used / storageQuota.total > 0.9 ? 'bg-red-500' :
+                  storageQuota.used / storageQuota.total > 0.7 ? 'bg-amber-500' : 'bg-brand'
+                }`}
+                style={{ width: `${Math.min((storageQuota.used / storageQuota.total) * 100, 100)}%` }}
+              />
+            </div>
+          </button>
 
           <div className="my-1 h-px bg-slate-100" />
 
@@ -182,7 +239,9 @@ export default function WorkspaceShell() {
       )}
 
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
-      <BalanceModal open={balanceOpen} onClose={() => setBalanceOpen(false)} />
+      <PlanModal open={planModalOpen} onClose={() => setPlanModalOpen(false)} />
+      <WatermarkSettingsModal open={watermarkModalOpen} onClose={() => setWatermarkModalOpen(false)} />
+      <StorageModal open={storageModalOpen} onClose={() => setStorageModalOpen(false)} />
     </>
   )
 }

@@ -1,6 +1,6 @@
 import { Component, useEffect, useState, type ReactNode, type ErrorInfo } from 'react'
 import WorkspaceShell from './components/workspace/WorkspaceShell'
-import { useCanvasStore } from './store/canvasStore'
+import { useProjectStore } from './store/projectStore'
 import { useWorkspaceStore } from './store/workspaceStore'
 import { useAccountStore } from './store/accountStore'
 
@@ -23,7 +23,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function MainLayout() {
-  const { initializeFromBackend, loadCanvasFile } = useCanvasStore()
+  const { initializeFromBackend } = useProjectStore()
   const { openDocument } = useWorkspaceStore()
   const [ready, setReady] = useState(false)
 
@@ -36,7 +36,7 @@ function MainLayout() {
         ;(window as any).__stores = {
           account: useAccountStore,
           workspace: useWorkspaceStore,
-          canvas: useCanvasStore,
+          project: useProjectStore,
         }
       }
 
@@ -47,7 +47,6 @@ function MainLayout() {
       if (docType && docId) {
         const allowedTypes = new Set(['imageGeneration', 'videoGeneration', 'welcome'])
         if (allowedTypes.has(docType)) {
-          loadCanvasFile(docId)
           openDocument({ type: docType as any, id: docId })
         }
       }
@@ -55,7 +54,7 @@ function MainLayout() {
       setReady(true)
     }
     init()
-  }, [initializeFromBackend, loadCanvasFile, openDocument])
+  }, [initializeFromBackend, openDocument])
 
   if (!ready) {
     return (

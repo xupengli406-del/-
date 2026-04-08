@@ -38,6 +38,53 @@ export const IMAGE_RESOLUTION_OPTIONS = [
   { label: '超清 4K', value: '4K' },
 ]
 
+// ===== Seedream 像素尺寸查找表 =====
+// key: "模型系列:比例:分辨率" → value: "WxH"
+// 数据来源: https://docs.cloudsway.net/zh/maasapi/api-reference/image/seedream
+
+const SEEDREAM_SIZE_MAP: Record<string, string> = {
+  // Seedream 4.0 / 4.5 — 1K
+  'seedream4:1:1:1K': '1024x1024', 'seedream4:4:3:1K': '1152x864', 'seedream4:3:4:1K': '864x1152',
+  'seedream4:16:9:1K': '1280x720', 'seedream4:9:16:1K': '720x1280', 'seedream4:3:2:1K': '1248x832',
+  'seedream4:2:3:1K': '832x1248', 'seedream4:21:9:1K': '1512x648',
+  // Seedream 4.0 / 4.5 — 2K
+  'seedream4:1:1:2K': '2048x2048', 'seedream4:4:3:2K': '2304x1728', 'seedream4:3:4:2K': '1728x2304',
+  'seedream4:16:9:2K': '2560x1440', 'seedream4:9:16:2K': '1440x2560', 'seedream4:3:2:2K': '2496x1664',
+  'seedream4:2:3:2K': '1664x2496', 'seedream4:21:9:2K': '3024x1296',
+  // Seedream 4.0 — 4K
+  'seedream4:1:1:4K': '4096x4096', 'seedream4:4:3:4K': '4608x3456', 'seedream4:3:4:4K': '3456x4608',
+  'seedream4:16:9:4K': '5120x2880', 'seedream4:9:16:4K': '2880x5120', 'seedream4:3:2:4K': '4992x3328',
+  'seedream4:2:3:4K': '3328x4992', 'seedream4:21:9:4K': '6048x2592',
+  // Seedream 5.0 — 2K
+  'seedream5:1:1:2K': '2048x2048', 'seedream5:4:3:2K': '2304x1728', 'seedream5:3:4:2K': '1728x2304',
+  'seedream5:16:9:2K': '2848x1600', 'seedream5:9:16:2K': '1600x2848', 'seedream5:3:2:2K': '2496x1664',
+  'seedream5:2:3:2K': '1664x2496', 'seedream5:21:9:2K': '3136x1344',
+  // Seedream 5.0 — 3K
+  'seedream5:1:1:3K': '3072x3072', 'seedream5:4:3:3K': '3456x2592', 'seedream5:3:4:3K': '2592x3456',
+  'seedream5:16:9:3K': '4096x2304', 'seedream5:9:16:3K': '2304x4096', 'seedream5:3:2:3K': '3744x2496',
+  'seedream5:2:3:3K': '2496x3744', 'seedream5:21:9:3K': '4704x2016',
+}
+
+/** 从模型名推断 Seedream 系列：'seedream4' | 'seedream5' | null */
+export function getSeedreamSeries(modelName: string): 'seedream4' | 'seedream5' | null {
+  const s = modelName.toLowerCase().replace(/[\s_-]/g, '')
+  if (s.includes('seedream5')) return 'seedream5'
+  if (s.includes('seedream4') || s.includes('seedream3')) return 'seedream4'  // 4.0 和 4.5 用同一份尺寸表
+  return null
+}
+
+/**
+ * 将 ratio + resolution 解析为像素尺寸字符串 "WxH"。
+ * - ratio='auto' 或找不到精确映射时，降级返回分辨率字符串 (如 "2K")。
+ */
+export function resolveImageSize(modelName: string, ratio: string, resolution: string): string {
+  if (ratio === 'auto') return resolution // 让模型自行决定
+  const series = getSeedreamSeries(modelName)
+  if (!series) return resolution // 非 Seedream 模型，走原逻辑
+  const key = `${series}:${ratio}:${resolution}`
+  return SEEDREAM_SIZE_MAP[key] || resolution
+}
+
 // 视频时长选项
 export const VIDEO_LENGTH_OPTIONS = [
   { label: '5s', value: 5 },

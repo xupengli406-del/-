@@ -1,25 +1,26 @@
 /**
- * 持久化 API 服务 - 与后端交互进行资产和画布文件的持久化存储
+ * 持久化 API 服务 - 与后端交互进行项目文件的持久化存储
  * 后端不可用时自动 fallback 到 localStorage，确保跨标签页数据一致
  */
 
-import type { CanvasFile } from '../store/types'
+import type { ProjectFile } from '../store/types'
 
 const API_BASE = 'http://localhost:8000'
 
 // ===== localStorage 辅助函数 =====
 
 const LS_KEYS = {
-  assets: 'poc_assets',
-  canvasFiles: 'poc_canvas_files',
+  projectFiles: 'poc_project_files',
   generateHistory: 'poc_generate_history',
 } as const
 
 export function resetDemoStorage(): void {
   try {
-    localStorage.removeItem(LS_KEYS.assets)
-    localStorage.removeItem(LS_KEYS.canvasFiles)
+    localStorage.removeItem(LS_KEYS.projectFiles)
     localStorage.removeItem(LS_KEYS.generateHistory)
+    // 清理旧版 key
+    localStorage.removeItem('poc_assets')
+    localStorage.removeItem('poc_canvas_files')
   } catch {
     console.warn('清理演示数据失败')
   }
@@ -28,7 +29,13 @@ export function resetDemoStorage(): void {
 function lsRead<T>(key: string): T[] {
   try {
     const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : []
+    if (raw) return JSON.parse(raw)
+    // 兼容旧 key：如果新 key 不存在，尝试读取旧 key
+    if (key === LS_KEYS.projectFiles) {
+      const legacy = localStorage.getItem('poc_canvas_files')
+      return legacy ? JSON.parse(legacy) : []
+    }
+    return []
   } catch {
     return []
   }
@@ -50,79 +57,21 @@ function mergeById<T extends { id: string }>(remote: T[], local: T[]): T[] {
   return Array.from(map.values())
 }
 
-// ===== 资产 API =====
+// ===== 项目文件 API =====
 
-export interface AssetPayload {
-  id: string
-  name: string
-  url: string
-  type: 'image' | 'video' | 'text'
-  source: 'generate' | 'upload' | 'canvas'
-  textContent?: string
-  createdAt: number
-}
-
-export async function fetchAssets(): Promise<AssetPayload[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/assets`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const remote = await res.json()
-    const local = lsRead<AssetPayload>(LS_KEYS.assets)
-    const merged = mergeById<AssetPayload>(remote, local)
-    lsWrite(LS_KEYS.assets, merged)
-    return merged
-  } catch {
-    console.warn('后端不可用，从 localStorage 读取资产')
-    return lsRead<AssetPayload>(LS_KEYS.assets)
-  }
-}
-
-export async function createAssetAPI(asset: AssetPayload): Promise<void> {
-  // 始终写入 localStorage
-  const existing = lsRead<AssetPayload>(LS_KEYS.assets)
-  lsWrite(LS_KEYS.assets, [...existing, asset])
-
-  try {
-    await fetch(`${API_BASE}/api/assets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(asset),
-    })
-  } catch {
-    console.warn('后端不可用，资产已保存到 localStorage:', asset.id)
-  }
-}
-
-export async function deleteAssetAPI(id: string): Promise<void> {
-  // 始终从 localStorage 删除
-  const existing = lsRead<AssetPayload>(LS_KEYS.assets)
-  lsWrite(LS_KEYS.assets, existing.filter((a) => a.id !== id))
-
-  try {
-    await fetch(`${API_BASE}/api/assets/${id}`, { method: 'DELETE' })
-  } catch {
-    console.warn('后端不可用，资产已从 localStorage 删除:', id)
-  }
-}
-
-// ===== 画布文件 API =====
-
-export interface CanvasFilePayload {
+export interface ProjectFilePayload {
   id: string
   name: string
   projectType?: 'image' | 'video'
   folderId?: string
-  mediaState?: CanvasFile['mediaState']
-  aiSession?: CanvasFile['aiSession']
-  snapshot: { nodes: unknown[]; edges: unknown[] }
+  mediaState?: ProjectFile['mediaState']
+  aiSession?: ProjectFile['aiSession']
   thumbnailUrl: string
-  nodeCount: number
-  edgeCount: number
   createdAt: number
   updatedAt: number
 }
 
-export function canvasFileToPayload(f: CanvasFile): CanvasFilePayload {
+export function projectFileToPayload(f: ProjectFile): ProjectFilePayload {
   return {
     id: f.id,
     name: f.name,
@@ -130,33 +79,30 @@ export function canvasFileToPayload(f: CanvasFile): CanvasFilePayload {
     folderId: f.folderId,
     mediaState: f.mediaState,
     aiSession: f.aiSession,
-    snapshot: f.snapshot as { nodes: unknown[]; edges: unknown[] },
     thumbnailUrl: f.thumbnailUrl,
-    nodeCount: f.nodeCount,
-    edgeCount: f.edgeCount,
     createdAt: f.createdAt,
     updatedAt: f.updatedAt,
   }
 }
 
-export async function fetchCanvasFiles(): Promise<CanvasFilePayload[]> {
+export async function fetchProjectFiles(): Promise<ProjectFilePayload[]> {
   try {
     const res = await fetch(`${API_BASE}/api/canvas-files`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const remote = await res.json()
-    const local = lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
-    const merged = mergeById<CanvasFilePayload>(remote, local)
-    lsWrite(LS_KEYS.canvasFiles, merged)
+    const local = lsRead<ProjectFilePayload>(LS_KEYS.projectFiles)
+    const merged = mergeById<ProjectFilePayload>(remote, local)
+    lsWrite(LS_KEYS.projectFiles, merged)
     return merged
   } catch {
-    console.warn('后端不可用，从 localStorage 读取画布文件')
-    return lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
+    console.warn('后端不可用，从 localStorage 读取项目文件')
+    return lsRead<ProjectFilePayload>(LS_KEYS.projectFiles)
   }
 }
 
-export async function createCanvasFileAPI(file: CanvasFilePayload): Promise<void> {
-  const existing = lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
-  lsWrite(LS_KEYS.canvasFiles, [...existing, file])
+export async function createProjectFileAPI(file: ProjectFilePayload): Promise<void> {
+  const existing = lsRead<ProjectFilePayload>(LS_KEYS.projectFiles)
+  lsWrite(LS_KEYS.projectFiles, [...existing, file])
 
   try {
     await fetch(`${API_BASE}/api/canvas-files`, {
@@ -165,19 +111,19 @@ export async function createCanvasFileAPI(file: CanvasFilePayload): Promise<void
       body: JSON.stringify(file),
     })
   } catch {
-    console.warn('后端不可用，画布文件已保存到 localStorage:', file.id)
+    console.warn('后端不可用，项目文件已保存到 localStorage:', file.id)
   }
 }
 
-export async function updateCanvasFileAPI(id: string, file: CanvasFilePayload): Promise<void> {
-  const existing = lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
+export async function updateProjectFileAPI(id: string, file: ProjectFilePayload): Promise<void> {
+  const existing = lsRead<ProjectFilePayload>(LS_KEYS.projectFiles)
   const idx = existing.findIndex((f) => f.id === id)
   if (idx >= 0) {
     existing[idx] = file
   } else {
     existing.push(file)
   }
-  lsWrite(LS_KEYS.canvasFiles, existing)
+  lsWrite(LS_KEYS.projectFiles, existing)
 
   try {
     await fetch(`${API_BASE}/api/canvas-files/${id}`, {
@@ -186,20 +132,34 @@ export async function updateCanvasFileAPI(id: string, file: CanvasFilePayload): 
       body: JSON.stringify(file),
     })
   } catch {
-    console.warn('后端不可用，画布文件已更新到 localStorage:', id)
+    console.warn('后端不可用，项目文件已更新到 localStorage:', id)
   }
 }
 
-export async function deleteCanvasFileAPI(id: string): Promise<void> {
-  const existing = lsRead<CanvasFilePayload>(LS_KEYS.canvasFiles)
-  lsWrite(LS_KEYS.canvasFiles, existing.filter((f) => f.id !== id))
+export async function deleteProjectFileAPI(id: string): Promise<void> {
+  const existing = lsRead<ProjectFilePayload>(LS_KEYS.projectFiles)
+  lsWrite(LS_KEYS.projectFiles, existing.filter((f) => f.id !== id))
 
   try {
     await fetch(`${API_BASE}/api/canvas-files/${id}`, { method: 'DELETE' })
   } catch {
-    console.warn('后端不可用，画布文件已从 localStorage 删除:', id)
+    console.warn('后端不可用，项目文件已从 localStorage 删除:', id)
   }
 }
+
+// ===== 向后兼容别名 =====
+/** @deprecated 使用 ProjectFilePayload */
+export type CanvasFilePayload = ProjectFilePayload
+/** @deprecated 使用 projectFileToPayload */
+export const canvasFileToPayload = projectFileToPayload
+/** @deprecated 使用 fetchProjectFiles */
+export const fetchCanvasFiles = fetchProjectFiles
+/** @deprecated 使用 createProjectFileAPI */
+export const createCanvasFileAPI = createProjectFileAPI
+/** @deprecated 使用 updateProjectFileAPI */
+export const updateCanvasFileAPI = updateProjectFileAPI
+/** @deprecated 使用 deleteProjectFileAPI */
+export const deleteCanvasFileAPI = deleteProjectFileAPI
 
 // ===== 生成页对话历史 API =====
 

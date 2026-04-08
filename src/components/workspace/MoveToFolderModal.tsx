@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useCanvasStore } from '../../store/canvasStore'
+import { useProjectStore } from '../../store/projectStore'
 import type { CustomFolder } from '../../store/types'
 
 interface MoveToFolderModalProps {
@@ -9,7 +9,7 @@ interface MoveToFolderModalProps {
 }
 
 export default function MoveToFolderModal({ fileIds, onClose }: MoveToFolderModalProps) {
-  const { customFolders, moveFileToFolder, addCustomFolder } = useCanvasStore()
+  const { customFolders, moveFileToFolder, addCustomFolder } = useProjectStore()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)

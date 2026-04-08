@@ -245,7 +245,7 @@ async def create_project_for_media(
 ) -> dict:
     """生成图片/视频后自动创建对应类型的项目文件，使结果在 web 端可见"""
     now = int(time.time() * 1000)
-    file_id = _gen_id("canvas")
+    file_id = _gen_id("proj")
     ver_id = _gen_id("ver")
     msg_id = f"msg_{now}"
 
@@ -255,10 +255,7 @@ async def create_project_for_media(
         "id": file_id,
         "name": name,
         "projectType": media_type,
-        "snapshot": {"nodes": [], "edges": [], "characters": [], "scenes": []},
         "thumbnailUrl": result_url,
-        "nodeCount": 0,
-        "edgeCount": 0,
         "createdAt": now,
         "updatedAt": now,
         "mediaState": {

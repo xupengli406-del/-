@@ -8,7 +8,7 @@ import type {
   FileTreeItem,
 } from './workspaceTypes'
 import { generatePaneId, isDocIdEqual, getDocumentLabel } from './documentHelpers'
-import { useCanvasStore } from './canvasStore'
+import { useProjectStore } from './projectStore'
 
 // 侧边栏面板类型 — 对应 Obsidian Sidebar 中不同的 tab
 export type SidePanelType = 'files'
@@ -36,7 +36,7 @@ interface WorkspaceState {
   toggleSidePanel: (panel: SidePanelType) => void
   toggleFolder: (folderId: string) => void
   buildFileTree: () => FileTreeItem[]
-  /** 画布文件名变更后同步所有 pane 内标签标题 */
+  /** 项目文件名变更后同步所有 pane 内标签标题 */
   refreshTabLabels: () => void
   /** 删除文件时，关闭所有引用该文件的 tab */
   closeTabsByFileId: (fileId: string) => void
@@ -70,9 +70,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   }),
 
   refreshTabLabels: () => {
-    const canvasState = useCanvasStore.getState()
+    const projectState = useProjectStore.getState()
     set((s) => ({
-      paneLayout: mapPaneLabels(s.paneLayout, canvasState),
+      paneLayout: mapPaneLabels(s.paneLayout, projectState),
     }))
   },
 
@@ -113,8 +113,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
 
     // 获取标签文本
-    const canvasState = useCanvasStore.getState()
-    const label = getDocumentLabel(docId, canvasState)
+    const projectState = useProjectStore.getState()
+    const label = getDocumentLabel(docId, projectState)
 
     const newTab: WorkspaceTab = { docId, label }
 
@@ -132,8 +132,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const state = get()
     const paneId = targetPaneId || state.activePaneId
 
-    const canvasState = useCanvasStore.getState()
-    const label = getDocumentLabel(docId, canvasState)
+    const projectState = useProjectStore.getState()
+    const label = getDocumentLabel(docId, projectState)
     const newTab: WorkspaceTab = { docId, label }
 
     set({
@@ -167,8 +167,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }
     }
 
-    const canvasState = useCanvasStore.getState()
-    const label = getDocumentLabel(docId, canvasState)
+    const projectState = useProjectStore.getState()
+    const label = getDocumentLabel(docId, projectState)
     const newTab: WorkspaceTab = { docId, label }
 
     set({
@@ -253,8 +253,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const newLeafTabs: WorkspaceTab[] = []
     if (targetDocId) {
-      const canvasState = useCanvasStore.getState()
-      const label = getDocumentLabel(targetDocId, canvasState)
+      const projectState = useProjectStore.getState()
+      const label = getDocumentLabel(targetDocId, projectState)
       newLeafTabs.push({ docId: targetDocId, label })
     }
 
@@ -292,9 +292,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   // 构建文件树 — Obsidian 式：初始为空，文件和文件夹平级，完全由用户创建
   buildFileTree: (): FileTreeItem[] => {
-    const cs = useCanvasStore.getState()
+    const cs = useProjectStore.getState()
 
-    // 将每个 canvasFile 转换为 FileTreeItem
+    // 将每个项目文件转换为 FileTreeItem
     const toFileItem = (f: { id: string; name: string; projectType?: string }): FileTreeItem => {
       const typeMap: Record<string, { type: import('./workspaceTypes').DocumentType; prefix: string }> = {
         image: { type: 'imageGeneration', prefix: 'image_' },
@@ -330,7 +330,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }
 
       // 该层级的文件（folderId 匹配当前层级）
-      for (const f of cs.canvasFiles) {
+      for (const f of cs.projectFiles) {
         if ((f.folderId ?? null) !== parentId) continue
         if (f.projectType !== 'image' && f.projectType !== 'video') continue
         items.push(toFileItem(f))
@@ -359,19 +359,19 @@ function findTabInTree(node: PaneNode, docId: DocumentId): { paneId: string, tab
   return null
 }
 
-function mapPaneLabels(node: PaneNode, canvasState: ReturnType<typeof useCanvasStore.getState>): PaneNode {
+function mapPaneLabels(node: PaneNode, projectState: ReturnType<typeof useProjectStore.getState>): PaneNode {
   if (node.kind === 'leaf') {
     return {
       ...node,
       tabs: node.tabs.map((t) => ({
         ...t,
-        label: getDocumentLabel(t.docId, canvasState),
+        label: getDocumentLabel(t.docId, projectState),
       })),
     }
   }
   return {
     ...node,
-    children: node.children.map((c) => mapPaneLabels(c, canvasState)),
+    children: node.children.map((c) => mapPaneLabels(c, projectState)),
   }
 }
 

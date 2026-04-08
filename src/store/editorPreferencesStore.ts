@@ -5,6 +5,10 @@ interface ImagePreferences {
   model: string
   ratio: string
   resolution: string
+  promptOptimize: boolean
+  sequentialGeneration: boolean
+  maxImages: number
+  outputFormat: 'jpeg' | 'png'
 }
 
 interface VideoPreferences {
@@ -25,7 +29,7 @@ interface EditorPreferencesState {
 export const useEditorPreferencesStore = create<EditorPreferencesState>()(
   persist(
     (set) => ({
-      image: { model: '', ratio: '1:1', resolution: '2K' },
+      image: { model: '', ratio: '1:1', resolution: '2K', promptOptimize: true, sequentialGeneration: false, maxImages: 4, outputFormat: 'jpeg' as const },
       video: { model: '', length: 5, ratio: '16:9', refMode: 'both', resolution: '720P' },
 
       updateImagePref: (updates) =>

@@ -1,18 +1,21 @@
 import { useMemo, useCallback } from 'react'
-import { useCanvasStore } from '../store/canvasStore'
+import { useProjectStore } from '../store/projectStore'
 import { useEditorPreferencesStore } from '../store/editorPreferencesStore'
 import type { GenerateMode } from '../components/generate/constants'
 import {
   getVideoModelCapabilities,
+  getImageResolutionOptions,
+  isSeedream5Lite,
   findModelForRefMode,
   findModelForDuration,
   isRefModeAvailable,
   type VideoReferenceMode,
   type VideoModelCapabilities,
+  type ImageResolutionOption,
 } from '../services/modelCapabilities'
 
 export function useEditorOptions() {
-  const availableModels = useCanvasStore((s) => s.availableModels)
+  const availableModels = useProjectStore((s) => s.availableModels)
 
   const imagePref = useEditorPreferencesStore((s) => s.image)
   const videoPref = useEditorPreferencesStore((s) => s.video)
@@ -37,6 +40,21 @@ export function useEditorOptions() {
     () => resolveModel(imagePref.model, imageModels),
     [imagePref.model, imageModels],
   )
+
+  // 当前图片模型的分辨率选项
+  const imageResolutionOptions: ImageResolutionOption[] = useMemo(() => {
+    const m = imageModels.find((x) => x.name === selectedImageModel)
+    if (!m) return [{ label: '高清 2K', value: '2K' }, { label: '超清 4K', value: '4K' }]
+    return getImageResolutionOptions(m.id, m.name)
+  }, [selectedImageModel, imageModels])
+
+  // 确保图片分辨率在当前模型支持范围内
+  const imageResolution = useMemo(() => {
+    const values = imageResolutionOptions.map((o) => o.value)
+    if (values.includes(imagePref.resolution)) return imagePref.resolution
+    return values[0] || '2K'
+  }, [imagePref.resolution, imageResolutionOptions])
+
   const selectedVideoModel = useMemo(
     () => resolveModel(videoPref.model, videoModels),
     [videoPref.model, videoModels],
@@ -151,7 +169,16 @@ export function useEditorOptions() {
 
     selectedImageModel,
     imageRatio: imagePref.ratio,
-    imageResolution: imagePref.resolution,
+    imageResolution,
+    imageResolutionOptions,
+    imagePromptOptimize: imagePref.promptOptimize,
+    imageSequentialGeneration: imagePref.sequentialGeneration,
+    imageMaxImages: imagePref.maxImages,
+    imageOutputFormat: imagePref.outputFormat,
+    imageSupportsOutputFormat: useMemo(() => {
+      const m = imageModels.find((x) => x.name === selectedImageModel)
+      return m ? isSeedream5Lite(m.id, m.name) : false
+    }, [selectedImageModel, imageModels]),
     selectedVideoModel,
     videoLength,
     videoRatio: videoPref.ratio,
@@ -160,9 +187,24 @@ export function useEditorOptions() {
     videoCapabilities,
 
     // 设置器
-    setSelectedImageModel: (v: string) => updateImagePref({ model: v }),
+    setSelectedImageModel: (v: string) => {
+      const m = imageModels.find((x) => x.name === v)
+      if (m) {
+        const opts = getImageResolutionOptions(m.id, m.name)
+        const values = opts.map((o) => o.value)
+        if (!values.includes(imagePref.resolution)) {
+          updateImagePref({ model: v, resolution: values[0] || '2K' })
+          return
+        }
+      }
+      updateImagePref({ model: v })
+    },
     setImageRatio: (v: string) => updateImagePref({ ratio: v }),
     setImageResolution: (v: string) => updateImagePref({ resolution: v }),
+    setImagePromptOptimize: (v: boolean) => updateImagePref({ promptOptimize: v }),
+    setImageSequentialGeneration: (v: boolean) => updateImagePref({ sequentialGeneration: v }),
+    setImageMaxImages: (v: number) => updateImagePref({ maxImages: v }),
+    setImageOutputFormat: (v: 'jpeg' | 'png') => updateImagePref({ outputFormat: v }),
 
     setSelectedVideoModel,
     setVideoLength,
