@@ -10,17 +10,17 @@ const footerLinks = [
   {
     title: '资源',
     links: [
-      { label: '使用教程', href: '#' },
-      { label: '更新日志', href: '#' },
-      { label: 'API 文档', href: '#' },
+      { label: '使用教程', href: '/app' },
+      { label: '更新日志', href: '/app' },
+      { label: 'API 文档', href: '/app' },
     ],
   },
   {
     title: '关于',
     links: [
-      { label: '关于我们', href: '#' },
-      { label: '服务条款', href: '#' },
-      { label: '隐私政策', href: '#' },
+      { label: '关于我们', href: '/app' },
+      { label: '服务条款', href: '/app' },
+      { label: '隐私政策', href: '/app' },
     ],
   },
 ]

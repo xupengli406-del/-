@@ -1,5 +1,5 @@
-import { Check, ArrowRight } from 'lucide-react'
-import { plans, modelPricing } from '../../constants/pricing'
+import { Check, ArrowRight, Sparkles } from 'lucide-react'
+import { plans } from '../../constants/pricing'
 import SectionWrapper from './SectionWrapper'
 
 export default function PricingSection() {
@@ -101,28 +101,22 @@ export default function PricingSection() {
           })}
         </div>
 
-        {/* 模型价格表 */}
-        <div className="max-w-2xl mx-auto">
-          <h3 className="text-center text-lg font-bold text-slate-900 mb-6">模型按量计费</h3>
-          <div className="rounded-xl border border-slate-200/80 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50/80">
-                  <th className="text-left text-xs font-semibold text-slate-500 px-5 py-3">模型</th>
-                  <th className="text-left text-xs font-semibold text-slate-500 px-5 py-3">规格</th>
-                  <th className="text-right text-xs font-semibold text-slate-500 px-5 py-3">价格</th>
-                </tr>
-              </thead>
-              <tbody>
-                {modelPricing.map((row, i) => (
-                  <tr key={i} className="border-t border-slate-100">
-                    <td className="text-sm text-slate-900 px-5 py-3 font-medium">{row.model}</td>
-                    <td className="text-sm text-slate-500 px-5 py-3">{row.type}</td>
-                    <td className="text-sm text-slate-900 font-semibold px-5 py-3 text-right">{row.price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* 模型按量计费提示 */}
+        <div className="max-w-md mx-auto text-center">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">模型按量计费</h3>
+          <div
+            className="rounded-2xl border border-slate-200/80 px-8 py-8 flex flex-col items-center gap-3"
+            style={{ background: 'linear-gradient(135deg, rgba(79,70,229,0.03), rgba(124,58,237,0.03))' }}
+          >
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
+              style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
+            >
+              <Sparkles size={18} className="text-white" strokeWidth={1.8} />
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              更多模型正在陆续上线，敬请期待
+            </p>
           </div>
         </div>
       </SectionWrapper>

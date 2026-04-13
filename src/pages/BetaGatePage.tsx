@@ -159,7 +159,7 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
               type="button"
               className="w-full py-3.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
               style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-              onClick={() => window.open('mailto:contact@cloudsvid.com?subject=申请内测邀请码', '_blank')}
+              onClick={() => window.open('mailto:vidservice@cloudsway.com?subject=申请内测邀请码', '_blank')}
             >
               申请内测资格
             </button>
