@@ -123,7 +123,7 @@ export default function HeroSection() {
 
           {/* 副标题 */}
           <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            从分镜到成片，CloudsVid 将你的创意快速转化为高质量的漫画与动态影像。
+            从分镜到成片，将你的创意快速转化为高质量漫画与动态影像。
             <br className="hidden sm:block" />
             无需专业技能，AI 帮你实现每一帧画面。
           </p>

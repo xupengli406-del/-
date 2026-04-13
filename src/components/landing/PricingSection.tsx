@@ -102,19 +102,19 @@ export default function PricingSection() {
         </div>
 
         {/* 模型按量计费提示 */}
-        <div className="max-w-md mx-auto text-center">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">模型按量计费</h3>
+        <div className="max-w-5xl mx-auto text-center">
+          <h3 className="text-lg font-bold text-slate-900 mb-6">模型按量计费</h3>
           <div
-            className="rounded-2xl border border-slate-200/80 px-8 py-8 flex flex-col items-center gap-3"
+            className="rounded-2xl border border-slate-200/80 px-8 py-12 flex flex-col items-center gap-4"
             style={{ background: 'linear-gradient(135deg, rgba(79,70,229,0.03), rgba(124,58,237,0.03))' }}
           >
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
             >
-              <Sparkles size={18} className="text-white" strokeWidth={1.8} />
+              <Sparkles size={22} className="text-white" strokeWidth={1.8} />
             </div>
-            <p className="text-sm text-slate-600 leading-relaxed">
+            <p className="text-base text-slate-600 leading-relaxed">
               更多模型正在陆续上线，敬请期待
             </p>
           </div>
