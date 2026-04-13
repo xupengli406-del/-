@@ -42,7 +42,7 @@ export default function HowItWorksSection() {
           {steps.map((step) => {
             const Icon = step.icon
             return (
-              <div key={step.num} className="relative text-center">
+              <div key={step.num} className="relative flex flex-col items-center text-center">
                 {/* 序号圆 */}
                 <div
                   className="relative inline-flex items-center justify-center w-14 h-14 rounded-full text-white mb-6"
@@ -54,7 +54,7 @@ export default function HowItWorksSection() {
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">{step.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+                <p className="text-sm text-slate-500 leading-relaxed max-w-[240px]">{step.desc}</p>
               </div>
             )
           })}
