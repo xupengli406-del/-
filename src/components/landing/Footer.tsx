@@ -36,8 +36,8 @@ export default function Footer() {
               <img src="/octopus.svg" alt="CloudsVid" className="w-8 h-8" />
               <span className="font-display text-xl font-bold text-slate-900">CloudsVid</span>
             </a>
-            <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
-              AI-powered comic creation platform — from storyboards to final cuts, bring your ideas to life.
+            <p className="text-sm text-slate-500 leading-relaxed max-w-xs uppercase tracking-wide font-medium">
+              AI Powered by Cloudsway Pte. Ltd.
             </p>
           </div>
 
