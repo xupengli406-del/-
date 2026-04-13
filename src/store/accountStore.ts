@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { BalanceInfo, BalanceRecord, BalanceRecordType, StorageQuota, StorageAsset } from './types'
 
-export type LoginTab = 'email' | 'quick' | 'manual'
-export type UserPlan = 'subscription' | 'enterprise'
+export type LoginTab = 'email' | 'google' | 'apple' | 'discord'
+export type UserPlan = 'free' | 'pro' | 'enterprise'
 export type BalanceFilter = 'all' | 'consume' | 'acquire'
 export type StorageAssetFilter = 'all' | 'image' | 'video' | 'upload'
 
@@ -59,16 +59,14 @@ const defaultProfile: UserProfile = {
 }
 
 const mockBalanceRecords: BalanceRecord[] = [
-  { id: 'r1', type: 'acquire', event: '新用户注册赠送', amount: 18, timestamp: Date.now() - 7 * 86400000 },
-  { id: 'r2', type: 'acquire', event: '订阅版月度额度', amount: 200, timestamp: Date.now() - 5 * 86400000 },
-  { id: 'r3', type: 'acquire', event: '充值', amount: 50, timestamp: Date.now() - 3 * 86400000 },
-  { id: 'r4', type: 'consume', event: '图片生成 - Seedream 4.0', amount: -0.5, timestamp: Date.now() - 2 * 86400000 },
-  { id: 'r5', type: 'consume', event: '视频生成 - Seedance 1.5', amount: -3, timestamp: Date.now() - 2 * 86400000 + 3600000 },
-  { id: 'r6', type: 'consume', event: '图片生成 - Seedream 4.0', amount: -0.5, timestamp: Date.now() - 86400000 },
-  { id: 'r7', type: 'consume', event: '视频生成 - Seedance 1.5', amount: -3, timestamp: Date.now() - 86400000 + 7200000 },
-  { id: 'r8', type: 'consume', event: '图片生成 - Seedream 4.0', amount: -0.5, timestamp: Date.now() - 43200000 },
-  { id: 'r9', type: 'acquire', event: '每日登录赠送', amount: 0.5, timestamp: Date.now() - 36000000 },
-  { id: 'r10', type: 'consume', event: '视频生成 - Seedance 1.5', amount: -3, timestamp: Date.now() - 7200000 },
+  { id: 'r1', type: 'acquire', event: '新用户注册赠送', amount: 1, timestamp: Date.now() - 7 * 86400000 },
+  { id: 'r2', type: 'acquire', event: '充值', amount: 20, timestamp: Date.now() - 3 * 86400000 },
+  { id: 'r3', type: 'consume', event: '图片生成 - Seedream 4.0', amount: -0.03, timestamp: Date.now() - 2 * 86400000 },
+  { id: 'r4', type: 'consume', event: '视频生成 - Seedance 1.5', amount: -0.3, timestamp: Date.now() - 2 * 86400000 + 3600000 },
+  { id: 'r5', type: 'consume', event: '图片生成 - Seedream 4.0', amount: -0.03, timestamp: Date.now() - 86400000 },
+  { id: 'r6', type: 'consume', event: '视频生成 - Seedance 1.5', amount: -0.5, timestamp: Date.now() - 86400000 + 7200000 },
+  { id: 'r7', type: 'consume', event: '图片生成 - Seedream 4.0 (4K)', amount: -0.06, timestamp: Date.now() - 43200000 },
+  { id: 'r8', type: 'consume', event: '视频生成 - Seedance 1.5 (10s)', amount: -0.5, timestamp: Date.now() - 7200000 },
 ]
 
 const GB = 1024 * 1024 * 1024
@@ -94,21 +92,21 @@ export const useAccountStore = create<AccountState>()(
       isLoggedIn: false,
       loginTab: 'email',
       profile: defaultProfile,
-      currentPlan: 'subscription',
+      currentPlan: 'free',
 
       // 全局水印设置
       globalWatermarkDisabled: false,
 
-      // 余额
-      balanceInfo: { total: 268, subscription: 200, recharged: 50, gifted: 18 },
+      // 余额 (USD)
+      balanceInfo: { total: 19.58, subscription: 0, recharged: 20, gifted: 1 },
       balanceRecords: mockBalanceRecords,
       balanceFilter: 'all',
 
       // 存储空间
       storageQuota: {
-        used: 1.2 * GB,
-        total: 50 * GB,
-        breakdown: { images: 512 * MB, videos: 614 * MB, uploads: 86 * MB },
+        used: 0.8 * GB,
+        total: 2 * GB,
+        breakdown: { images: 312 * MB, videos: 414 * MB, uploads: 86 * MB },
       },
       storageAssets: mockStorageAssets,
       storageAssetFilter: 'all',

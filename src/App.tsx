@@ -1,8 +1,10 @@
-import { Component, useEffect, useState, type ReactNode, type ErrorInfo } from 'react'
+import { Component, lazy, Suspense, useEffect, useState, type ReactNode, type ErrorInfo } from 'react'
 import WorkspaceShell from './components/workspace/WorkspaceShell'
 import { useProjectStore } from './store/projectStore'
 import { useWorkspaceStore } from './store/workspaceStore'
 import { useAccountStore } from './store/accountStore'
+
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -70,10 +72,24 @@ function MainLayout() {
   return <WorkspaceShell />
 }
 
+const isLandingPage = window.location.pathname === '/' || window.location.pathname === ''
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <MainLayout />
+      {isLandingPage ? (
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-screen bg-ct-bg">
+              <div className="w-8 h-8 border-2 border-ct-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          <LandingPage />
+        </Suspense>
+      ) : (
+        <MainLayout />
+      )}
     </ErrorBoundary>
   )
 }
