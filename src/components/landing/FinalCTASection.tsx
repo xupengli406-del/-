@@ -15,17 +15,17 @@ export default function FinalCTASection() {
 
           <div className="relative z-10">
             <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 leading-tight">
-              开始你的 AI 漫剧创作之旅
+              Start Your AI Comic Creation Journey
             </h2>
             <p className="text-lg text-white/80 max-w-xl mx-auto mb-8">
-              免费注册，新用户即享 $1 创作额度。无需信用卡，立即体验。
+              Sign up free — new users get $1 in credits. No credit card required.
             </p>
             <a
               href="/app"
               className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-base font-semibold bg-white hover:bg-white/90 transition-all shadow-lg"
               style={{ color: '#4F46E5' }}
             >
-              免费开始创作
+              Start Creating Free
               <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
             </a>
           </div>
