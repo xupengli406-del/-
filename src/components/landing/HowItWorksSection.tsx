@@ -5,20 +5,20 @@ const steps = [
   {
     icon: PenTool,
     num: '01',
-    title: '描述你的故事',
-    desc: '用自然语言输入场景描述、角色设定和画面构想，AI 会理解你的创意意图。',
+    title: 'Describe Your Story',
+    desc: 'Input scene descriptions, character settings, and visual concepts in natural language — AI understands your creative intent.',
   },
   {
     icon: Wand2,
     num: '02',
-    title: 'AI 生成画面',
-    desc: '选择图片或视频模型，调整参考图和参数，一键生成高质量画面并快速迭代。',
+    title: 'AI Generates Visuals',
+    desc: 'Choose image or video models, adjust references and parameters, then generate high-quality visuals with one click.',
   },
   {
     icon: Download,
     num: '03',
-    title: '导出成片',
-    desc: '管理多个分镜版本，选择最佳方案，导出高清图片或视频素材。',
+    title: 'Export Final Work',
+    desc: 'Manage multiple storyboard versions, pick the best option, and export HD images or video assets.',
   },
 ]
 
@@ -28,10 +28,10 @@ export default function HowItWorksSection() {
       <SectionWrapper id="how-it-works">
         <div className="text-center mb-16">
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-            三步开始创作
+            Get Started in 3 Steps
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            简单直觉的工作流程，从想法到成品只需几分钟
+            A simple, intuitive workflow — from idea to finished product in minutes
           </p>
         </div>
 

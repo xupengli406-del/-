@@ -18,7 +18,7 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
     e.preventDefault()
     const trimmed = code.trim().toUpperCase()
     if (!trimmed) {
-      setError('请输入邀请码')
+      setError('Please enter an invite code')
       return
     }
     if (VALID_CODES.has(trimmed)) {
@@ -26,7 +26,7 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
       setSuccess(true)
       setTimeout(() => onEnter(), 800)
     } else {
-      setError('邀请码无效，请检查后重试')
+      setError('Invalid invite code. Please try again.')
       setSuccess(false)
     }
   }
@@ -58,7 +58,7 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
           className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
         >
           <ArrowLeft size={16} />
-          返回首页
+          Back to Home
         </a>
       </div>
 
@@ -78,12 +78,12 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
           {/* 主文案 */}
           <div className="text-center mb-10">
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">
-              即将公测
+              Coming Soon
             </h1>
             <p className="text-base text-slate-500 leading-relaxed">
-              CloudsVid 正在进行内测中，目前仅对受邀用户开放。
+              CloudsVid is currently in closed beta, available to invited users only.
               <br />
-              输入邀请码即可抢先体验。
+              Enter your invite code to get early access.
             </p>
           </div>
 
@@ -107,7 +107,7 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
                   type="text"
                   value={code}
                   onChange={(e) => { setCode(e.target.value); setError('') }}
-                  placeholder="请输入内测邀请码"
+                  placeholder="Enter your invite code"
                   className="flex-1 text-sm text-slate-900 placeholder:text-slate-400 outline-none bg-transparent"
                   disabled={success}
                   autoFocus
@@ -133,10 +133,10 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
               }}
             >
               {success ? (
-                <>进入工作台...</>
+                <>Entering workspace...</>
               ) : (
                 <>
-                  验证并进入
+                  Verify & Enter
                   <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
@@ -146,29 +146,29 @@ export default function BetaGatePage({ onEnter }: { onEnter: () => void }) {
           {/* 分隔线 */}
           <div className="flex items-center gap-3 mb-8">
             <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-xs text-slate-400">或</span>
+            <span className="text-xs text-slate-400">or</span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
 
           {/* 申请内测 */}
           <div className="text-center">
             <p className="text-sm text-slate-500 mb-4">
-              还没有邀请码？留下你的信息，我们会尽快联系你
+              Don't have an invite code? Leave your info and we'll get back to you soon
             </p>
             <button
               type="button"
               className="w-full py-3.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
               style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-              onClick={() => window.open('mailto:vidservice@cloudsway.com?subject=申请内测邀请码', '_blank')}
+              onClick={() => window.open('mailto:vidservice@cloudsway.com?subject=Request Beta Access', '_blank')}
             >
-              申请内测资格
+              Request Beta Access
             </button>
           </div>
 
           {/* 底部提示 */}
           <div className="mt-10 flex items-center justify-center gap-2 text-xs text-slate-400">
             <Sparkles size={12} />
-            <span>公测预计很快开放，敬请期待</span>
+            <span>Public beta coming soon — stay tuned</span>
           </div>
         </div>
       </div>

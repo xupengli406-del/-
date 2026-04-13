@@ -1,26 +1,26 @@
 const footerLinks = [
   {
-    title: '产品',
+    title: 'Product',
     links: [
-      { label: '图片生成', href: '/app' },
-      { label: '视频生成', href: '/app' },
-      { label: '定价方案', href: '#pricing' },
+      { label: 'Image Generation', href: '/app' },
+      { label: 'Video Generation', href: '/app' },
+      { label: 'Pricing', href: '#pricing' },
     ],
   },
   {
-    title: '资源',
+    title: 'Resources',
     links: [
-      { label: '使用教程', href: '/app' },
-      { label: '更新日志', href: '/app' },
-      { label: 'API 文档', href: '/app' },
+      { label: 'Tutorials', href: '/app' },
+      { label: 'Changelog', href: '/app' },
+      { label: 'API Docs', href: '/app' },
     ],
   },
   {
-    title: '关于',
+    title: 'Company',
     links: [
-      { label: '关于我们', href: '/app' },
-      { label: '服务条款', href: '/app' },
-      { label: '隐私政策', href: '/app' },
+      { label: 'About Us', href: '/app' },
+      { label: 'Terms of Service', href: '/app' },
+      { label: 'Privacy Policy', href: '/app' },
     ],
   },
 ]
@@ -37,7 +37,7 @@ export default function Footer() {
               <span className="font-display text-xl font-bold text-slate-900">CloudsVid</span>
             </a>
             <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
-              AI 驱动的漫剧创作平台，从分镜到成片，让创意快速成真。
+              AI-powered comic creation platform — from storyboards to final cuts, bring your ideas to life.
             </p>
           </div>
 

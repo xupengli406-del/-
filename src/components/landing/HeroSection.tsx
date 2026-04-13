@@ -19,8 +19,8 @@ function BentoShowcase() {
             <Image size={20} className="text-white" strokeWidth={1.8} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-1">AI 分镜图片生成</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">Seedream 4.0 模型 · 2K/4K · 参考图控制</p>
+            <h3 className="text-sm font-bold text-slate-900 mb-1">AI Storyboard Generation</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">Seedream 4.0 · 2K/4K · Reference Image Control</p>
           </div>
         </div>
         {/* 模拟生成的图片网格 */}
@@ -43,12 +43,12 @@ function BentoShowcase() {
         <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #06B6D4, #0891B2)' }}>
           <MessageSquare size={18} className="text-white" strokeWidth={1.8} />
         </div>
-        <h3 className="text-sm font-bold text-slate-900 mb-1">AI 对话创作</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">自然语言描述场景，AI 即刻生成</p>
+        <h3 className="text-sm font-bold text-slate-900 mb-1">AI Chat Creation</h3>
+        <p className="text-xs text-slate-500 leading-relaxed">Describe scenes in natural language, AI generates instantly</p>
         {/* 聊天气泡模拟 */}
         <div className="mt-3 space-y-2">
-          <div className="bg-white/70 rounded-lg rounded-tl-none px-3 py-1.5 text-[10px] text-slate-600 max-w-[80%]">一个赛博朋克风格的夜景...</div>
-          <div className="bg-gradient-to-r from-indigo-100 to-violet-100 rounded-lg rounded-tr-none px-3 py-1.5 text-[10px] text-slate-600 max-w-[80%] ml-auto">已为你生成 4 张候选图</div>
+          <div className="bg-white/70 rounded-lg rounded-tl-none px-3 py-1.5 text-[10px] text-slate-600 max-w-[80%]">A cyberpunk-style night scene...</div>
+          <div className="bg-gradient-to-r from-indigo-100 to-violet-100 rounded-lg rounded-tr-none px-3 py-1.5 text-[10px] text-slate-600 max-w-[80%] ml-auto">Generated 4 candidate images for you</div>
         </div>
       </div>
 
@@ -64,8 +64,8 @@ function BentoShowcase() {
         <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #E11D48, #F43F5E)' }}>
           <Film size={18} className="text-white" strokeWidth={1.8} />
         </div>
-        <h3 className="text-sm font-bold text-slate-900 mb-1">视频动态生成</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">5s/10s · 首尾帧控制</p>
+        <h3 className="text-sm font-bold text-slate-900 mb-1">Video Generation</h3>
+        <p className="text-xs text-slate-500 leading-relaxed">5s/10s · First & Last Frame Control</p>
         {/* 播放进度模拟 */}
         <div className="mt-3 h-1.5 rounded-full bg-rose-100 overflow-hidden">
           <div className="h-full w-2/3 rounded-full" style={{ background: 'linear-gradient(90deg, #E11D48, #F43F5E)' }} />
@@ -82,9 +82,9 @@ function BentoShowcase() {
         }}
       >
         {[
-          { icon: Layers, label: '版本管理', color: '#8B5CF6' },
-          { icon: Wand2, label: '提示词优化', color: '#4F46E5' },
-          { icon: Zap, label: '批量生成', color: '#06B6D4' },
+          { icon: Layers, label: 'Versioning', color: '#8B5CF6' },
+          { icon: Wand2, label: 'Prompt Optimize', color: '#4F46E5' },
+          { icon: Zap, label: 'Batch Generate', color: '#06B6D4' },
         ].map(({ icon: Icon, label, color }) => (
           <div key={label} className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}15` }}>
@@ -111,21 +111,21 @@ export default function HeroSection() {
           {/* 标签 */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-8" style={{ background: 'rgba(79,70,229,0.05)', borderColor: 'rgba(79,70,229,0.1)' }}>
             <Sparkles size={14} style={{ color: '#4F46E5' }} />
-            <span className="text-sm font-medium" style={{ color: '#4F46E5' }}>AI 驱动的创作新范式</span>
+            <span className="text-sm font-medium" style={{ color: '#4F46E5' }}>AI-Powered Creative Workflow</span>
           </div>
 
           {/* 主标题 */}
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6">
-            <span className="text-slate-900">让 AI 为你的</span>
+            <span className="text-slate-900">Empower Your</span>
             <br />
-            <span className="ct-gradient-text">漫剧创作赋能</span>
+            <span className="ct-gradient-text">Comic Creation with AI</span>
           </h1>
 
           {/* 副标题 */}
           <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            从分镜到成片，将你的创意快速转化为高质量漫画与动态影像。
+            From storyboards to final cuts, turn your ideas into stunning comics and animations.
             <br className="hidden sm:block" />
-            无需专业技能，AI 帮你实现每一帧画面。
+            No professional skills needed — AI brings every frame to life.
           </p>
 
           {/* CTA 按钮 */}
@@ -138,14 +138,14 @@ export default function HeroSection() {
                 boxShadow: '0 4px 24px rgba(79, 70, 229, 0.25)',
               }}
             >
-              免费开始创作
+              Start Creating Free
               <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a
               href="#features"
               className="inline-flex items-center px-8 py-3.5 rounded-full text-base font-semibold text-slate-700 border border-slate-200 hover:border-indigo-300 hover:text-slate-900 transition-all"
             >
-              了解更多
+              Learn More
             </a>
           </div>
         </div>

@@ -8,10 +8,10 @@ export default function PricingSection() {
       <SectionWrapper id="pricing">
         <div className="text-center mb-16">
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-            简单透明的定价
+            Simple, Transparent Pricing
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            按需使用，无隐藏费用。升级 Pro 解锁更多权益
+            Pay as you go, no hidden fees. Upgrade to Pro for more benefits
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export default function PricingSection() {
                       : { background: 'rgba(79, 70, 229, 0.06)', color: '#4F46E5' }
                   }
                 >
-                  {plan.key === 'enterprise' ? '联系我们' : '立即开始'}
+                  {plan.key === 'enterprise' ? 'Contact Us' : 'Get Started'}
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </a>
               </div>
@@ -103,7 +103,7 @@ export default function PricingSection() {
 
         {/* 模型按量计费提示 */}
         <div className="max-w-5xl mx-auto text-center">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">模型按量计费</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-6">Pay-Per-Use Model Pricing</h3>
           <div
             className="rounded-2xl border border-slate-200/80 px-8 py-12 flex flex-col items-center gap-4"
             style={{ background: 'linear-gradient(135deg, rgba(79,70,229,0.03), rgba(124,58,237,0.03))' }}
@@ -115,7 +115,7 @@ export default function PricingSection() {
               <Sparkles size={22} className="text-white" strokeWidth={1.8} />
             </div>
             <p className="text-base text-slate-600 leading-relaxed">
-              更多模型正在陆续上线，敬请期待
+              More models coming soon — stay tuned
             </p>
           </div>
         </div>

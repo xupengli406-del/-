@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 
 const navLinks = [
-  { label: '功能', href: '#features' },
-  { label: '工作流程', href: '#how-it-works' },
-  { label: '定价', href: '#pricing' },
+  { label: 'Features', href: '#features' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Pricing', href: '#pricing' },
 ]
 
 export default function Navbar() {
@@ -49,7 +49,7 @@ export default function Navbar() {
           className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
           style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
         >
-          开始创作
+          Get Started
         </a>
       </div>
     </nav>
