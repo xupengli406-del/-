@@ -25,7 +25,7 @@ function formatTime(ts: number): string {
 function formatAmount(amount: number): string {
   const abs = Math.abs(amount)
   const formatted = abs.toFixed(2)
-  return amount >= 0 ? `+¥${formatted}` : `-¥${formatted}`
+  return amount >= 0 ? `+$${formatted}` : `-$${formatted}`
 }
 
 interface BalanceDetailModalProps {
@@ -63,26 +63,26 @@ export default function BalanceDetailModal({ open, onClose }: BalanceDetailModal
             <div className="rounded-xl bg-slate-50 px-3 py-3 text-center">
               <div className="text-[10px] text-slate-400 mb-1">订阅余额</div>
               <div className="text-[16px] font-bold text-slate-800">
-                {balanceInfo.subscription.toFixed(0)}
+                ${balanceInfo.subscription.toFixed(2)}
               </div>
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-3 text-center">
               <div className="text-[10px] text-slate-400 mb-1">充值余额</div>
               <div className="text-[16px] font-bold text-slate-800">
-                {balanceInfo.recharged.toFixed(0)}
+                ${balanceInfo.recharged.toFixed(2)}
               </div>
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-3 text-center">
               <div className="text-[10px] text-slate-400 mb-1">赠送余额</div>
               <div className="text-[16px] font-bold text-slate-800">
-                {balanceInfo.gifted.toFixed(0)}
+                ${balanceInfo.gifted.toFixed(2)}
               </div>
             </div>
             <div className="rounded-xl bg-brand/5 px-3 py-3 text-center">
               <div className="text-[10px] text-brand mb-1">总余额</div>
               <div className="flex items-center justify-center gap-1 text-[16px] font-bold text-brand">
-                <span className="text-[12px]">¥</span>
-                {balanceInfo.total.toFixed(0)}
+                <span className="text-[12px]">$</span>
+                {balanceInfo.total.toFixed(2)}
               </div>
             </div>
           </div>

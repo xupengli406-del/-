@@ -355,3 +355,29 @@ body {
 .btn-primary-atelier:hover {
   opacity: 0.92;
 }
+
+/* ===== Landing Page ===== */
+
+.landing-page,
+.landing-page body,
+.landing-page #root {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  height: auto;
+  min-height: 100%;
+}
+
+.ct-gradient-text {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ct-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.3;
+  pointer-events: none;
+}
