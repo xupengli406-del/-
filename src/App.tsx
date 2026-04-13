@@ -5,6 +5,9 @@ import { useWorkspaceStore } from './store/workspaceStore'
 import { useAccountStore } from './store/accountStore'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const BetaGatePage = lazy(() => import('./pages/BetaGatePage'))
+
+const BETA_AUTH_KEY = 'cloudsvid_beta_auth'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -33,7 +36,6 @@ function MainLayout() {
     const init = async () => {
       await initializeFromBackend()
 
-      // 暴露 stores 供 Playwright 自动化脚本使用（仅开发环境）
       if (import.meta.env.DEV) {
         ;(window as any).__stores = {
           account: useAccountStore,
@@ -42,7 +44,6 @@ function MainLayout() {
         }
       }
 
-      // URL 参数兼容: ?docType=imageGeneration&docId=xxx
       const params = new URLSearchParams(window.location.search)
       const docType = params.get('docType')
       const docId = params.get('docId')
@@ -72,6 +73,31 @@ function MainLayout() {
   return <WorkspaceShell />
 }
 
+function AppRoute() {
+  const [betaAuthed, setBetaAuthed] = useState(() => sessionStorage.getItem(BETA_AUTH_KEY) === '1')
+
+  const handleBetaEnter = () => {
+    sessionStorage.setItem(BETA_AUTH_KEY, '1')
+    setBetaAuthed(true)
+  }
+
+  if (betaAuthed) {
+    return <MainLayout />
+  }
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen" style={{ background: '#F8FAFC' }}>
+          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#4F46E5', borderTopColor: 'transparent' }} />
+        </div>
+      }
+    >
+      <BetaGatePage onEnter={handleBetaEnter} />
+    </Suspense>
+  )
+}
+
 const isLandingPage = window.location.pathname === '/' || window.location.pathname === ''
 
 export default function App() {
@@ -80,15 +106,15 @@ export default function App() {
       {isLandingPage ? (
         <Suspense
           fallback={
-            <div className="flex items-center justify-center h-screen bg-ct-bg">
-              <div className="w-8 h-8 border-2 border-ct-primary border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center justify-center h-screen" style={{ background: '#F8FAFC' }}>
+              <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#4F46E5', borderTopColor: 'transparent' }} />
             </div>
           }
         >
           <LandingPage />
         </Suspense>
       ) : (
-        <MainLayout />
+        <AppRoute />
       )}
     </ErrorBoundary>
   )
